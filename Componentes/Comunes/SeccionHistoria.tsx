@@ -25,7 +25,7 @@ export function SeccionHistoria() {
         <div className="relative mx-auto w-full max-w-xl">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
             <Image
-              src="/1.png"
+              src="/2.png"
               alt="Vista del resort"
               fill
               className="object-cover"
