@@ -11,13 +11,13 @@ function TarjetaExperiencia({
 }) {
   return (
     <article className="text-center">
-      <div className="relative mx-auto h-12 w-12 overflow-hidden rounded-full bg-[#d9c19a]/25">
+      <div className="relative mx-auto h-20 w-20">
         <Image
           src={RutaIcono}
           alt=""
           aria-hidden="true"
           fill
-          sizes="48px"
+          sizes="80px"
           className="object-contain"
         />
       </div>
