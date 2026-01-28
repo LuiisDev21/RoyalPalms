@@ -122,9 +122,9 @@ export function BarraNavegacion() {
       : "pointer-events-none opacity-0 -translate-y-2 scale-95",
     EstaFlotante
       ? EsTemaClaro
-        ? "border-black/10 bg-white/70 backdrop-blur-sm"
-        : "border-white/16 bg-black/30 backdrop-blur-md"
-      : "border-white/16 bg-black/35 backdrop-blur-md",
+        ? "border-black/10 bg-white/78 backdrop-blur-xl"
+        : "border-white/16 bg-black/45 backdrop-blur-2xl"
+      : "border-white/16 bg-black/50 backdrop-blur-2xl",
   );
 
   const ClaseEnlaceMovil = UnirClases(
@@ -158,7 +158,10 @@ export function BarraNavegacion() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6 sm:pt-6">
+    <header
+      className="fixed inset-x-0 top-0 z-50 px-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 sm:pt-[calc(1.5rem+env(safe-area-inset-top))] transform-gpu will-change-transform"
+      style={{ WebkitTransform: "translate3d(0,0,0)" }}
+    >
       <div
         className={UnirClases(
           "relative mx-auto w-full rounded-full border border-transparent py-3",
