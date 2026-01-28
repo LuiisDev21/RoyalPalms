@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BotonEnlace } from "@/Componentes/Base/BotonEnlace";
+import { LogoMarca } from "@/Componentes/Comunes/LogoMarca";
 
 const EnlacesNavegacion = [
   { Texto: "Inicio", HRef: "/" },
@@ -82,7 +83,10 @@ export function BarraNavegacion() {
                 ClaseTextoMarca,
               )}
             >
-              Royal Palm
+              <span className="flex items-center gap-3">
+                <LogoMarca ClaseAdicional="h-6 w-6 md:h-7 md:w-7" />
+                <span>Royal Palm</span>
+              </span>
             </Link>
 
             <nav className="hidden items-center gap-8 md:flex">
