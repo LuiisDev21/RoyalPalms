@@ -15,3 +15,28 @@ body {
 .FuenteTitulo {
   font-family: var(--FuenteTitulo), ui-serif, Georgia, serif;
 }
+
+@keyframes BolitaIndicadorDesplazamiento {
+  0% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(14px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+}
+
+.AnimacionBolitaIndicadorDesplazamiento {
+  animation: BolitaIndicadorDesplazamiento 1.3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .AnimacionBolitaIndicadorDesplazamiento {
+    animation: none;
+  }
+}
