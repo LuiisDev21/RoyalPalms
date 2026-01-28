@@ -6,7 +6,7 @@ export function HeroPortada() {
   return (
     <section className="relative min-h-screen overflow-hidden">
       <Image
-        src="/FondoHero.webp"
+        src="/HotelHero.jpg"
         alt="Interior del hotel"
         fill
         priority
