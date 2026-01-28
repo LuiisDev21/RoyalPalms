@@ -1,10 +1,23 @@
 import type { Metadata } from "next";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RoyalPalms",
+  title: "Royal Palm",
   description: "Tu hotel, tu momento.",
 };
+
+const FuenteCuerpo = Inter({
+  subsets: ["latin"],
+  variable: "--FuenteCuerpo",
+  display: "swap",
+});
+
+const FuenteTitulo = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--FuenteTitulo",
+  display: "swap",
+});
 
 export default function DisenoRaiz({
   children,
@@ -13,7 +26,9 @@ export default function DisenoRaiz({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className={`${FuenteCuerpo.variable} ${FuenteTitulo.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }
