@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { EnlaceReservarAhora } from "@/Componentes/Base/EnlaceReservarAhora";
 import { notFound } from "next/navigation";
 import { BarraNavegacion } from "@/Componentes/Comunes/BarraNavegacion";
 import { PiePagina } from "@/Componentes/Comunes/PiePagina";
@@ -116,12 +117,11 @@ export default async function PaginaDetalleHabitacion({
                 {PrecioFormato}/noche
               </p>
               {EstaDisponible ? (
-                <Link
-                  href="/#Reservar"
+                <EnlaceReservarAhora
                   className="inline-flex items-center justify-center rounded-lg bg-[#b88f3a] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[#a67c32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
                 >
                   Reservar ahora
-                </Link>
+                </EnlaceReservarAhora>
               ) : (
                 <span
                   className="inline-flex cursor-not-allowed items-center justify-center rounded-lg border border-[#6a645a]/30 bg-[#6a645a]/10 px-6 py-3 text-sm font-medium text-[#5b564d]"

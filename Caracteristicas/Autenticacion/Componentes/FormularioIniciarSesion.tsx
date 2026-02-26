@@ -1,14 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
+import { EsHuesped, ObtenerRolesUsuario, PuedeAccederAlPanel } from "@/Tipos/Auth";
 import { LogoMarca } from "@/Componentes/Comunes/LogoMarca";
+import { Notificaciones } from "@/Utilidades/Notificaciones";
+import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 function UnirClases(...Clases: Array<string | undefined | false | null>) {
   return Clases.filter(Boolean).join(" ");
 }
 
 export function FormularioIniciarSesion() {
+  const router = useRouter();
+  const { IniciarSesion, RegistrarUsuario } = UseAuth();
   const [PestañaActiva, PonerPestañaActiva] = useState<"login" | "registro">("login");
   const [Email, PonerEmail] = useState("");
   const [Contraseña, PonerContraseña] = useState("");
@@ -17,6 +24,65 @@ export function FormularioIniciarSesion() {
   const [RegistroApellido, PonerRegistroApellido] = useState("");
   const [RegistroTelefono, PonerRegistroTelefono] = useState("");
   const [RegistroContraseña, PonerRegistroContraseña] = useState("");
+  const [Enviando, PonerEnviando] = useState(false);
+
+  async function EnviarLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!Email.trim() || !Contraseña) {
+      Notificaciones.Error("Ingresa email y contraseña.");
+      return;
+    }
+    PonerEnviando(true);
+    try {
+      await IniciarSesion({ email: Email.trim(), password: Contraseña });
+      Notificaciones.Exito("Sesión iniciada", "Redirigiendo…");
+      const { ObtenerUsuarioAlmacenado } = await import("@/Servicios/ApiCliente");
+      const u = ObtenerUsuarioAlmacenado();
+      const roles = ObtenerRolesUsuario(u);
+      if (PuedeAccederAlPanel(roles)) router.push("/admin");
+      else if (EsHuesped(roles)) router.push("/mi-cuenta");
+      else router.push("/");
+    } catch (err) {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(err, "Error al iniciar sesión");
+      Notificaciones.Error(Titulo, Descripcion);
+    } finally {
+      PonerEnviando(false);
+    }
+  }
+
+  async function EnviarRegistro(e: React.FormEvent) {
+    e.preventDefault();
+    if (!RegistroEmail.trim() || !RegistroNombre.trim() || !RegistroApellido.trim() || !RegistroContraseña) {
+      Notificaciones.Error("Completa los campos obligatorios.");
+      return;
+    }
+    PonerEnviando(true);
+    try {
+      await RegistrarUsuario({
+        email: RegistroEmail.trim(),
+        nombre: RegistroNombre.trim(),
+        apellido: RegistroApellido.trim(),
+        password: RegistroContraseña,
+        telefono: RegistroTelefono.trim() || null,
+      });
+      await IniciarSesion({
+        email: RegistroEmail.trim(),
+        password: RegistroContraseña,
+      });
+      Notificaciones.Exito("Cuenta creada", "Redirigiendo…");
+      const { ObtenerUsuarioAlmacenado } = await import("@/Servicios/ApiCliente");
+      const u = ObtenerUsuarioAlmacenado();
+      const roles = ObtenerRolesUsuario(u);
+      if (PuedeAccederAlPanel(roles)) router.push("/admin");
+      else if (EsHuesped(roles)) router.push("/mi-cuenta");
+      else router.push("/");
+    } catch (err) {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(err, "Error al registrarse");
+      Notificaciones.Error(Titulo, Descripcion);
+    } finally {
+      PonerEnviando(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-[#f6f2ec]">
@@ -77,7 +143,7 @@ export function FormularioIniciarSesion() {
           {PestañaActiva === "login" ? (
             <form
               className="mt-8"
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={EnviarLogin}
               noValidate
             >
               <div>
@@ -140,15 +206,16 @@ export function FormularioIniciarSesion() {
               </div>
               <button
                 type="submit"
-                className="mt-8 w-full rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
+                disabled={Enviando}
+                className="mt-8 w-full rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] disabled:opacity-60"
               >
-                Entrar
+                {Enviando ? "Entrando…" : "Entrar"}
               </button>
             </form>
           ) : (
             <form
               className="mt-8"
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={EnviarRegistro}
               noValidate
             >
               <div>
@@ -279,9 +346,10 @@ export function FormularioIniciarSesion() {
               </div>
               <button
                 type="submit"
-                className="mt-8 w-full rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
+                disabled={Enviando}
+                className="mt-8 w-full rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] disabled:opacity-60"
               >
-                Registrarse
+                {Enviando ? "Registrando…" : "Registrarse"}
               </button>
             </form>
           )}

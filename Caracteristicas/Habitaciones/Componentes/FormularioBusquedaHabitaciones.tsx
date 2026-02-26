@@ -9,10 +9,21 @@ function UnirClases(...Clases: Array<string | undefined | false | null>) {
   return Clases.filter(Boolean).join(" ");
 }
 
+export interface DatosBusquedaHabitaciones {
+  FechaEntrada: string;
+  FechaSalida: string;
+  Huespedes: string;
+  TipoId: string;
+}
+
 export function FormularioBusquedaHabitaciones({
   Tipos,
+  AlBuscarConDatos,
+  Deshabilitado = false,
 }: {
   Tipos: TipoHabitacionResponse[];
+  AlBuscarConDatos?: (datos: DatosBusquedaHabitaciones) => void | Promise<void>;
+  Deshabilitado?: boolean;
 }) {
   const Router = useRouter();
   const Parametros = useSearchParams();
@@ -34,6 +45,15 @@ export function FormularioBusquedaHabitaciones({
   const AlBuscar = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+      if (AlBuscarConDatos) {
+        void AlBuscarConDatos({
+          FechaEntrada,
+          FechaSalida,
+          Huespedes,
+          TipoId,
+        });
+        return;
+      }
       const Buscador = new URLSearchParams();
       if (FechaEntrada) Buscador.set("entrada", FechaEntrada);
       if (FechaSalida) Buscador.set("salida", FechaSalida);
@@ -41,7 +61,7 @@ export function FormularioBusquedaHabitaciones({
       if (TipoId) Buscador.set("tipo", TipoId);
       Router.push(`/habitaciones?${Buscador.toString()}`);
     },
-    [FechaEntrada, FechaSalida, Huespedes, TipoId, Router]
+    [FechaEntrada, FechaSalida, Huespedes, TipoId, Router, AlBuscarConDatos]
   );
 
   return (
@@ -108,8 +128,9 @@ export function FormularioBusquedaHabitaciones({
       </div>
       <button
         type="submit"
+        disabled={Deshabilitado}
         className={UnirClases(
-          "flex shrink-0 items-center gap-2 rounded-lg bg-[#b88f3a] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#a67c32]",
+          "flex shrink-0 items-center gap-2 rounded-lg bg-[#b88f3a] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#a67c32] disabled:opacity-60",
           "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
         )}
       >
@@ -119,7 +140,7 @@ export function FormularioBusquedaHabitaciones({
             <path d="m21 21-4.35-4.35" />
           </svg>
         </span>
-        Buscar
+        {Deshabilitado ? "Buscando…" : "Buscar"}
       </button>
     </form>
   );

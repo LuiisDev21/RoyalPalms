@@ -1,5 +1,8 @@
+import { ProveedorNotificaciones } from "@/Componentes/Comunes/ProveedorNotificaciones";
+import { ProveedorAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import "sileo/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,7 +33,9 @@ export default function DisenoRaiz({
   return (
     <html lang="es">
       <body className={`${FuenteCuerpo.variable} ${FuenteTitulo.variable} antialiased`}>
-        {children}
+        <ProveedorNotificaciones>
+          <ProveedorAuth>{children}</ProveedorAuth>
+        </ProveedorNotificaciones>
       </body>
     </html>
   );

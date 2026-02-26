@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EnlaceScrollInicio } from "@/Componentes/Base/EnlaceScrollInicio";
 import { LogoMarca } from "@/Componentes/Comunes/LogoMarca";
+import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
+import { EsHuesped, ObtenerRolesUsuario } from "@/Tipos/Auth";
+import { ObtenerUsuarioAlmacenado } from "@/Servicios/ApiCliente";
 
 const EnlacesNavegacion = [
   { Texto: "Habitaciones", HRef: "/habitaciones" },
@@ -56,9 +59,22 @@ function IconoCerrar({ ClaseAdicional }: { ClaseAdicional?: string }) {
 }
 
 export function BarraNavegacion() {
+  const { Usuario, Cargando } = UseAuth();
+  const [Montado, PonerMontado] = useState(false);
   const [EstaFlotante, PonerEstaFlotante] = useState(false);
   const [EsTemaClaro, PonerEsTemaClaro] = useState(false);
   const [EstaMenuMovilAbierto, PonerEstaMenuMovilAbierto] = useState(false);
+
+  useEffect(() => {
+    PonerMontado(true);
+  }, []);
+
+  const UsuarioActual = Montado ? (Usuario ?? ObtenerUsuarioAlmacenado()) : null;
+  const Roles = ObtenerRolesUsuario(UsuarioActual);
+  const EsSoloHuesped = EsHuesped(Roles);
+  const MostrarMiCuenta = Montado && !!UsuarioActual && EsSoloHuesped;
+  const MostrarPanel = Montado && !!UsuarioActual && !EsSoloHuesped;
+  const MostrarIniciarSesion = Montado && !UsuarioActual && !Cargando;
 
   useEffect(() => {
     function AlHacerScroll() {
@@ -210,17 +226,44 @@ export function BarraNavegacion() {
           </div>
 
           <div className="hidden items-center gap-6 md:flex">
-            <EnlaceScrollInicio
-              href="/login"
-              className={UnirClases(
-                "hidden text-sm transition-colors sm:inline",
-                ClaseTextoAccion,
-              )}
-            >
-              Iniciar Sesión
-            </EnlaceScrollInicio>
+            {MostrarIniciarSesion && (
+              <EnlaceScrollInicio
+                href="/login"
+                className={UnirClases(
+                  "hidden text-sm transition-colors sm:inline",
+                  ClaseTextoAccion,
+                )}
+              >
+                Iniciar Sesión
+              </EnlaceScrollInicio>
+            )}
+            {MostrarMiCuenta && (
+              <Link
+                href="/mi-cuenta"
+                className={UnirClases(
+                  "hidden text-sm transition-colors sm:inline",
+                  ClaseTextoAccion,
+                )}
+              >
+                Mi cuenta
+              </Link>
+            )}
+            {MostrarPanel && (
+              <Link
+                href="/admin"
+                className={UnirClases(
+                  "hidden text-sm transition-colors sm:inline",
+                  ClaseTextoAccion,
+                )}
+              >
+                Panel
+              </Link>
+            )}
 
-            <Link href="/#Reservar" className={ClaseBotonReservar}>
+            <Link
+              href={UsuarioActual ? "/mi-cuenta/reservas/nueva" : "/login"}
+              className={ClaseBotonReservar}
+            >
               Reservar Ahora
             </Link>
           </div>
@@ -253,15 +296,35 @@ export function BarraNavegacion() {
           </nav>
 
           <div className="mt-3 border-t border-white/10 pt-3">
-            <EnlaceScrollInicio
-              href="/login"
-              className={ClaseAccionMovil}
-              onClick={CerrarMenuMovil}
-            >
-              Iniciar Sesión
-            </EnlaceScrollInicio>
+            {MostrarIniciarSesion && (
+              <EnlaceScrollInicio
+                href="/login"
+                className={ClaseAccionMovil}
+                onClick={CerrarMenuMovil}
+              >
+                Iniciar Sesión
+              </EnlaceScrollInicio>
+            )}
+            {MostrarMiCuenta && (
+              <Link
+                href="/mi-cuenta"
+                className={ClaseAccionMovil}
+                onClick={CerrarMenuMovil}
+              >
+                Mi cuenta
+              </Link>
+            )}
+            {MostrarPanel && (
+              <Link
+                href="/admin"
+                className={ClaseAccionMovil}
+                onClick={CerrarMenuMovil}
+              >
+                Panel
+              </Link>
+            )}
             <Link
-              href="/#Reservar"
+              href={UsuarioActual ? "/mi-cuenta/reservas/nueva" : "/login"}
               className={ClaseAccionMovil}
               onClick={CerrarMenuMovil}
             >

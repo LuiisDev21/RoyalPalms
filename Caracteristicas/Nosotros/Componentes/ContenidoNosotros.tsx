@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { EnlaceReservarAhora } from "@/Componentes/Base/EnlaceReservarAhora";
 import { BloqueSeccion } from "./BloqueSeccion";
 
 const ClaseSeccion =
@@ -384,12 +384,11 @@ export function ContenidoNosotros() {
           Bienvenido a tu refugio. Bienvenido a tu hogar lejos de casa.
         </p>
         <div className="mt-12">
-          <Link
-            href="/#Reservar"
+          <EnlaceReservarAhora
             className="inline-flex items-center justify-center rounded-md bg-[#b88f3a]/90 px-6 py-3 text-sm text-white transition-colors hover:bg-[#c59a42]/95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
           >
             Reservar Ahora
-          </Link>
+          </EnlaceReservarAhora>
         </div>
       </section>
     </article>
