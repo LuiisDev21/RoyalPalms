@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Royal Palm",
   description: "Tu hotel, tu momento.",
+  icons: {
+    icon: "/Logo.svg",
+  },
 };
 
 const FuenteCuerpo = Inter({

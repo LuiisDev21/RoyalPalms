@@ -42,3 +42,5 @@ package-lock.json
 next-env.d.ts
 
 Agents.md
+/minifrontend
+/docs

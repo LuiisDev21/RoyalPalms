@@ -34,14 +34,14 @@ export function HeroPortada() {
 
             <div className="mt-10 flex items-center justify-center gap-4">
               <BotonEnlace
-                HRef="/#Habitaciones"
+                HRef="/habitaciones"
                 Texto="Explorar Habitaciones"
                 Variante="Dorado"
                 Tamano="Grande"
               />
 
               <BotonEnlace
-                HRef="/#ConocerMas"
+                HRef="/nosotros"
                 Texto="Conocer Más"
                 Variante="ContornoClaro"
                 Tamano="Grande"

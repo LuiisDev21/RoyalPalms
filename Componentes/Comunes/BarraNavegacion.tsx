@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { EnlaceScrollInicio } from "@/Componentes/Base/EnlaceScrollInicio";
 import { LogoMarca } from "@/Componentes/Comunes/LogoMarca";
 
 const EnlacesNavegacion = [
-  { Texto: "Inicio", HRef: "/" },
-  { Texto: "Habitaciones", HRef: "/#Habitaciones" },
-  { Texto: "Nosotros", HRef: "/#Nosotros" },
+  { Texto: "Habitaciones", HRef: "/habitaciones" },
+  { Texto: "Nosotros", HRef: "/nosotros" },
   { Texto: "Contacto", HRef: "/#Contacto" },
 ] as const;
 
@@ -183,7 +183,7 @@ export function BarraNavegacion() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 sm:px-6">
           <div className="flex items-center gap-10">
-            <Link
+            <EnlaceScrollInicio
               href="/"
               className={UnirClases(
                 "FuenteTitulo text-base tracking-wide transition-colors md:text-lg",
@@ -194,31 +194,31 @@ export function BarraNavegacion() {
                 <LogoMarca ClaseAdicional="h-6 w-6 md:h-7 md:w-7" />
                 <span>Royal Palm</span>
               </span>
-            </Link>
+            </EnlaceScrollInicio>
 
             <nav className="hidden items-center gap-8 md:flex">
               {EnlacesNavegacion.map((Enlace) => (
-                <Link
+                <EnlaceScrollInicio
                   key={Enlace.Texto}
                   href={Enlace.HRef}
                   className={UnirClases("text-sm transition-colors", ClaseTextoEnlace)}
                 >
                   {Enlace.Texto}
-                </Link>
+                </EnlaceScrollInicio>
               ))}
             </nav>
           </div>
 
           <div className="hidden items-center gap-6 md:flex">
-            <Link
-              href="/#IniciarSesion"
+            <EnlaceScrollInicio
+              href="/login"
               className={UnirClases(
                 "hidden text-sm transition-colors sm:inline",
                 ClaseTextoAccion,
               )}
             >
               Iniciar Sesión
-            </Link>
+            </EnlaceScrollInicio>
 
             <Link href="/#Reservar" className={ClaseBotonReservar}>
               Reservar Ahora
@@ -241,25 +241,25 @@ export function BarraNavegacion() {
         <div className={ClasePanelMovil} role="dialog" aria-label="Menú">
           <nav className="space-y-1">
             {EnlacesNavegacion.map((Enlace) => (
-              <Link
+              <EnlaceScrollInicio
                 key={Enlace.Texto}
                 href={Enlace.HRef}
                 className={ClaseEnlaceMovil}
                 onClick={CerrarMenuMovil}
               >
                 {Enlace.Texto}
-              </Link>
+              </EnlaceScrollInicio>
             ))}
           </nav>
 
           <div className="mt-3 border-t border-white/10 pt-3">
-            <Link
-              href="/#IniciarSesion"
+            <EnlaceScrollInicio
+              href="/login"
               className={ClaseAccionMovil}
               onClick={CerrarMenuMovil}
             >
               Iniciar Sesión
-            </Link>
+            </EnlaceScrollInicio>
             <Link
               href="/#Reservar"
               className={ClaseAccionMovil}
