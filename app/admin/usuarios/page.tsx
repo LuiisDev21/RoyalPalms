@@ -1,16 +1,27 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { ListarUsuariosPanel, type UsuarioPanelResponse } from "@/Servicios/PanelApiServicio";
+import { ClavesQueryPanel } from "@/Utilidades/QueryKeysPanel";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
-import { useEffect, useState } from "react";
 
 export default function PaginaUsuariosAdmin() {
-  const [Usuarios, setUsuarios] = useState<UsuarioPanelResponse[]>([]);
-  const [Cargando, setCargando] = useState(true);
   const [TextoBusqueda, setTextoBusqueda] = useState("");
   const [FiltroRol, setFiltroRol] = useState<string>("");
   const [FiltroActivo, setFiltroActivo] = useState<string>("");
+
+  const { data: Usuarios = [], isLoading: Cargando, isError, error } = useQuery({
+    queryKey: ClavesQueryPanel.Usuarios,
+    queryFn: () => ListarUsuariosPanel(),
+  });
+
+  useEffect(() => {
+    if (!isError || !error) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(error, "Error al cargar usuarios");
+    Notificaciones.Error(Titulo, Descripcion);
+  }, [isError, error]);
 
   const UsuariosFiltrados = Usuarios.filter((u) => {
     const Texto = TextoBusqueda.trim().toLowerCase();
@@ -32,23 +43,6 @@ export default function PaginaUsuariosAdmin() {
   const RolesUnicos = Array.from(
     new Set(Usuarios.flatMap((u) => u.roles?.map((r) => r.nombre) ?? []))
   ).filter(Boolean).sort();
-
-  async function Cargar() {
-    setCargando(true);
-    try {
-      const r = await ListarUsuariosPanel();
-      setUsuarios(r);
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cargar usuarios");
-      Notificaciones.Error(Titulo, Descripcion);
-    } finally {
-      setCargando(false);
-    }
-  }
-
-  useEffect(() => {
-    Cargar();
-  }, []);
 
   return (
     <div>

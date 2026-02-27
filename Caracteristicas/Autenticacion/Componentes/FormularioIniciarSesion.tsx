@@ -35,9 +35,10 @@ export function FormularioIniciarSesion() {
     PonerEnviando(true);
     try {
       await IniciarSesion({ email: Email.trim(), password: Contraseña });
-      Notificaciones.Exito("Sesión iniciada", "Redirigiendo…");
       const { ObtenerUsuarioAlmacenado } = await import("@/Servicios/ApiCliente");
       const u = ObtenerUsuarioAlmacenado();
+      const NombreMostrar = [u?.nombre, u?.apellido].filter(Boolean).join(" ").trim() || u?.email || "Usuario";
+      Notificaciones.Exito("Sesión iniciada", `Bienvenido, ${NombreMostrar}`);
       const roles = ObtenerRolesUsuario(u);
       if (PuedeAccederAlPanel(roles)) router.push("/admin");
       else if (EsHuesped(roles)) router.push("/mi-cuenta");
@@ -69,7 +70,8 @@ export function FormularioIniciarSesion() {
         email: RegistroEmail.trim(),
         password: RegistroContraseña,
       });
-      Notificaciones.Exito("Cuenta creada", "Redirigiendo…");
+      const NombreMostrar = [RegistroNombre.trim(), RegistroApellido.trim()].filter(Boolean).join(" ").trim() || RegistroEmail.trim();
+      Notificaciones.Exito("Cuenta creada", `Bienvenido, ${NombreMostrar}`);
       const { ObtenerUsuarioAlmacenado } = await import("@/Servicios/ApiCliente");
       const u = ObtenerUsuarioAlmacenado();
       const roles = ObtenerRolesUsuario(u);

@@ -1,5 +1,12 @@
 "use client";
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { ModalConfirmacion } from "@/Componentes/Base/ModalConfirmacion";
+import {
+  FormatearMontoConMoneda,
+  ObtenerPrecioTotalNumerico,
+} from "@/Utilidades/FormatearMoneda";
 import {
   ListarTodasReservasPanel,
   ObtenerReservaPanel,
@@ -8,13 +15,13 @@ import {
   type ReservaResponse,
 } from "@/Servicios/PanelApiServicio";
 import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
+import { ClavesQueryPanel } from "@/Utilidades/QueryKeysPanel";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
 import {
   PuedeCancelarReserva,
   PuedeActualizarEstadoReserva,
 } from "@/Utilidades/PermisosPanel";
-import { useEffect, useState } from "react";
 
 const ESTADOS_RESERVA = ["pendiente", "confirmada", "cancelada", "completada", "no_show"] as const;
 
@@ -37,13 +44,53 @@ function BadgeEstadoReserva(Estado: string) {
 
 export default function PaginaReservasAdmin() {
   const { Roles } = UseAuth();
+  const queryClient = useQueryClient();
   const PuedeCancelar = PuedeCancelarReserva(Roles);
   const PuedeActualizarEstado = PuedeActualizarEstadoReserva(Roles);
-  const [Reservas, setReservas] = useState<ReservaResponse[]>([]);
-  const [Cargando, setCargando] = useState(true);
   const [ModalReserva, setModalReserva] = useState<ReservaResponse | null>(null);
   const [TextoBusqueda, setTextoBusqueda] = useState("");
   const [FiltroEstado, setFiltroEstado] = useState<string>("");
+  const [ConfirmacionReserva, setConfirmacionReserva] = useState<
+    { accion: "checkout"; id: number } | { accion: "no_show"; id: number } | { accion: "cancelar"; id: number } | null
+  >(null);
+
+  const { data: Reservas = [], isLoading: Cargando, isError, error } = useQuery({
+    queryKey: ClavesQueryPanel.Reservas,
+    queryFn: () => ListarTodasReservasPanel(),
+  });
+
+  const MutacionActualizar = useMutation({
+    mutationFn: ({ Id, estado }: { Id: number; estado: string }) =>
+      ActualizarReservaPanel(Id, { estado }),
+    onSuccess: (_, { estado }) => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+      setModalReserva(null);
+      Notificaciones.Exito(estado === "completada" ? "Reserva marcada como completada" : "Reserva marcada como no-show");
+    },
+    onError: (e) => {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al actualizar");
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
+
+  const MutacionCancelar = useMutation({
+    mutationFn: CancelarReservaPanel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+      setModalReserva(null);
+      Notificaciones.Exito("Reserva cancelada correctamente");
+    },
+    onError: (e) => {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cancelar");
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
+
+  useEffect(() => {
+    if (!isError || !error) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(error, "Error al cargar reservas");
+    Notificaciones.Error(Titulo, Descripcion);
+  }, [isError, error]);
 
   const ReservasFiltradas = Reservas.filter((r) => {
     const Texto = TextoBusqueda.trim().toLowerCase();
@@ -59,23 +106,6 @@ export default function PaginaReservasAdmin() {
     return true;
   });
 
-  async function Cargar() {
-    setCargando(true);
-    try {
-      const r = await ListarTodasReservasPanel();
-      setReservas(r);
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cargar reservas");
-      Notificaciones.Error(Titulo, Descripcion);
-    } finally {
-      setCargando(false);
-    }
-  }
-
-  useEffect(() => {
-    Cargar();
-  }, []);
-
   async function VerDetalle(Id: number) {
     try {
       const r = await ObtenerReservaPanel(Id);
@@ -86,44 +116,39 @@ export default function PaginaReservasAdmin() {
     }
   }
 
-  async function MarcarCheckout(Id: number) {
-    if (!confirm("¿Marcar esta reserva como completada (check-out)?")) return;
-    try {
-      await ActualizarReservaPanel(Id, { estado: "completada" });
-      Notificaciones.Exito("Reserva marcada como completada");
-      setModalReserva(null);
-      await Cargar();
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al actualizar");
-      Notificaciones.Error(Titulo, Descripcion);
-    }
+  function SolicitarCheckout(Id: number) {
+    setConfirmacionReserva({ accion: "checkout", id: Id });
   }
 
-  async function MarcarNoShow(Id: number) {
-    if (!confirm("¿Marcar esta reserva como no-show?")) return;
-    try {
-      await ActualizarReservaPanel(Id, { estado: "no_show" });
-      Notificaciones.Exito("Reserva marcada como no-show");
-      setModalReserva(null);
-      await Cargar();
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al actualizar");
-      Notificaciones.Error(Titulo, Descripcion);
-    }
+  function SolicitarNoShow(Id: number) {
+    setConfirmacionReserva({ accion: "no_show", id: Id });
   }
 
-  async function Cancelar(Id: number) {
-    if (!confirm("¿Estás seguro de cancelar esta reserva?")) return;
-    try {
-      await CancelarReservaPanel(Id);
-      Notificaciones.Exito("Reserva cancelada correctamente");
-      setModalReserva(null);
-      await Cargar();
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cancelar");
-      Notificaciones.Error(Titulo, Descripcion);
-    }
+  function SolicitarCancelar(Id: number) {
+    setConfirmacionReserva({ accion: "cancelar", id: Id });
   }
+
+  function ConfirmarAccionReserva() {
+    if (!ConfirmacionReserva) return;
+    if (ConfirmacionReserva.accion === "cancelar") {
+      MutacionCancelar.mutate(ConfirmacionReserva.id);
+    } else {
+      MutacionActualizar.mutate({
+        Id: ConfirmacionReserva.id,
+        estado: ConfirmacionReserva.accion === "checkout" ? "completada" : "no_show",
+      });
+    }
+    setConfirmacionReserva(null);
+  }
+
+  const ConfigConfirmacion =
+    ConfirmacionReserva?.accion === "checkout"
+      ? { Titulo: "Marcar como completada", Mensaje: "¿Marcar esta reserva como completada (check-out)?", TextoConfirmar: "Marcar completada", Variante: "primario" as const }
+      : ConfirmacionReserva?.accion === "no_show"
+        ? { Titulo: "Marcar como no-show", Mensaje: "¿Marcar esta reserva como no-show?", TextoConfirmar: "Marcar no-show", Variante: "primario" as const }
+        : ConfirmacionReserva?.accion === "cancelar"
+          ? { Titulo: "Cancelar reserva", Mensaje: "¿Estás seguro de cancelar esta reserva?", TextoConfirmar: "Cancelar reserva", Variante: "peligro" as const }
+          : null;
 
   const Hoy = new Date().toISOString().slice(0, 10);
 
@@ -224,7 +249,10 @@ export default function PaginaReservasAdmin() {
                     </td>
                     <td className="px-4 py-3">{r.numero_huespedes}</td>
                     <td className="px-4 py-3">
-                      ${parseFloat(r.precio_total).toFixed(2)}
+                      {FormatearMontoConMoneda(
+                        ObtenerPrecioTotalNumerico(r.precio_total),
+                        r.moneda ?? "USD"
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {BadgeEstadoReserva(r.estado)}
@@ -241,7 +269,7 @@ export default function PaginaReservasAdmin() {
                         {PuedeActualizarEstado && r.estado === "confirmada" && (
                           <button
                             type="button"
-                            onClick={() => MarcarCheckout(r.id)}
+                            onClick={() => SolicitarCheckout(r.id)}
                             className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700"
                           >
                             Check-out
@@ -250,7 +278,7 @@ export default function PaginaReservasAdmin() {
                         {PuedeActualizarEstado && PuedeNoShow && (
                           <button
                             type="button"
-                            onClick={() => MarcarNoShow(r.id)}
+                            onClick={() => SolicitarNoShow(r.id)}
                             className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700"
                           >
                             No-show
@@ -259,7 +287,7 @@ export default function PaginaReservasAdmin() {
                         {PuedeCancelar && r.estado !== "cancelada" && (
                           <button
                             type="button"
-                            onClick={() => Cancelar(r.id)}
+                            onClick={() => SolicitarCancelar(r.id)}
                             className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
                           >
                             Cancelar
@@ -310,8 +338,11 @@ export default function PaginaReservasAdmin() {
                 {BadgeEstadoReserva(ModalReserva.estado)}
               </p>
               <p>
-                <strong>Precio total:</strong> $
-                {parseFloat(ModalReserva.precio_total).toFixed(2)}
+                <strong>Precio total:</strong>{" "}
+                {FormatearMontoConMoneda(
+                  ObtenerPrecioTotalNumerico(ModalReserva.precio_total),
+                  ModalReserva.moneda ?? "USD"
+                )}
               </p>
               {ModalReserva.notas ? (
                 <p>
@@ -330,6 +361,17 @@ export default function PaginaReservasAdmin() {
             </div>
           </div>
         </div>
+      )}
+      {ConfigConfirmacion && (
+        <ModalConfirmacion
+          Abierto={!!ConfirmacionReserva}
+          Titulo={ConfigConfirmacion.Titulo}
+          Mensaje={ConfigConfirmacion.Mensaje}
+          TextoConfirmar={ConfigConfirmacion.TextoConfirmar}
+          Variante={ConfigConfirmacion.Variante}
+          AlConfirmar={ConfirmarAccionReserva}
+          AlCancelar={() => setConfirmacionReserva(null)}
+        />
       )}
     </div>
   );

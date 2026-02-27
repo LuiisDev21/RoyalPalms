@@ -116,7 +116,7 @@ export interface ReservaResponse {
   fecha_entrada: string;
   fecha_salida: string;
   numero_huespedes: number;
-  precio_total: string;
+  precio_total: string | number;
   estado: string;
   codigo_reserva: string | null;
   numero_habitacion?: string | null;
@@ -124,6 +124,12 @@ export interface ReservaResponse {
   notas?: string | null;
   fecha_creacion: string;
   fecha_actualizacion: string;
+  moneda?: string;
+  subtotal?: number;
+  impuestos?: number;
+  descuentos?: number;
+  otros_cargos?: number;
+  precio_por_noche_snapshot?: number;
 }
 
 export async function ListarTodasReservasPanel(

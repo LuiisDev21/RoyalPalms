@@ -11,8 +11,8 @@ export function EncabezadoMiCuenta() {
     : "";
   const Email = Usuario?.email ?? "";
 
-  function AlCerrarSesion() {
-    CerrarSesion();
+  async function AlCerrarSesion() {
+    await CerrarSesion();
     router.push("/");
   }
 

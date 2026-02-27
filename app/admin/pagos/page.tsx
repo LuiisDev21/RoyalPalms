@@ -1,14 +1,16 @@
 "use client";
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { ModalConfirmacion } from "@/Componentes/Base/ModalConfirmacion";
 import {
   ListarPagosPanel,
   ProcesarPagoPanel,
   ReembolsarPagoPanel,
-  type TransaccionPagoResponse,
 } from "@/Servicios/PanelApiServicio";
+import { ClavesQueryPanel } from "@/Utilidades/QueryKeysPanel";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
-import { useEffect, useState } from "react";
 
 function BadgeEstado(Estado: string) {
   const clases: Record<string, string> = {
@@ -28,12 +30,63 @@ function BadgeEstado(Estado: string) {
 
 const ESTADOS_PAGO = ["pendiente", "completado", "rechazado", "reembolsado", "en_proceso", "disputado"] as const;
 
+const ETIQUETAS_TIPO_PAGO: Record<string, string> = {
+  cargo: "Cargo",
+  deposito: "Depósito",
+  ajuste: "Ajuste",
+  penalizacion: "Penalización",
+  reembolso: "Reembolso",
+};
+
+function EtiquetaTipoPago(tipo: string): string {
+  const t = tipo?.toLowerCase() ?? "";
+  return ETIQUETAS_TIPO_PAGO[t] ?? tipo ?? "—";
+}
+
+type ConfirmacionPago = { tipo: "procesar"; id: number } | { tipo: "reembolsar"; id: number };
+
 export default function PaginaPagosAdmin() {
-  const [Pagos, setPagos] = useState<TransaccionPagoResponse[]>([]);
-  const [Cargando, setCargando] = useState(true);
+  const queryClient = useQueryClient();
   const [TextoBusqueda, setTextoBusqueda] = useState("");
   const [FiltroEstado, setFiltroEstado] = useState<string>("");
   const [FiltroMetodo, setFiltroMetodo] = useState<string>("");
+  const [ConfirmacionPago, setConfirmacionPago] = useState<ConfirmacionPago | null>(null);
+
+  const { data: Pagos = [], isLoading: Cargando, isError, error } = useQuery({
+    queryKey: ClavesQueryPanel.Pagos,
+    queryFn: () => ListarPagosPanel(),
+  });
+
+  const MutacionProcesar = useMutation({
+    mutationFn: ProcesarPagoPanel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Pagos });
+      Notificaciones.Exito("Pago procesado correctamente");
+    },
+    onError: (e) => {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al procesar");
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
+
+  const MutacionReembolsar = useMutation({
+    mutationFn: ReembolsarPagoPanel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Pagos });
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+      Notificaciones.Exito("Reembolso realizado", "La reserva ha sido cancelada.");
+    },
+    onError: (e) => {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al reembolsar");
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
+
+  useEffect(() => {
+    if (!isError || !error) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(error, "Error al cargar pagos");
+    Notificaciones.Error(Titulo, Descripcion);
+  }, [isError, error]);
 
   const PagosFiltrados = Pagos.filter((p) => {
     const Texto = TextoBusqueda.trim().toLowerCase();
@@ -51,46 +104,23 @@ export default function PaginaPagosAdmin() {
 
   const MetodosUnicos = Array.from(new Set(Pagos.map((p) => p.metodo_pago))).sort();
 
-  async function Cargar() {
-    setCargando(true);
-    try {
-      const r = await ListarPagosPanel();
-      setPagos(r);
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cargar pagos");
-      Notificaciones.Error(Titulo, Descripcion);
-    } finally {
-      setCargando(false);
-    }
+  function SolicitarProcesar(Id: number) {
+    setConfirmacionPago({ tipo: "procesar", id: Id });
   }
 
-  useEffect(() => {
-    Cargar();
-  }, []);
-
-  async function Procesar(Id: number) {
-    if (!confirm("¿Procesar este pago?")) return;
-    try {
-      await ProcesarPagoPanel(Id);
-      Notificaciones.Exito("Pago procesado correctamente");
-      await Cargar();
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al procesar");
-      Notificaciones.Error(Titulo, Descripcion);
-    }
+  function SolicitarReembolsar(Id: number) {
+    setConfirmacionPago({ tipo: "reembolsar", id: Id });
   }
 
-  async function Reembolsar(Id: number) {
-    if (!confirm("¿Estás seguro de reembolsar este pago? La reserva asociada será cancelada.")) return;
-    try {
-      await ReembolsarPagoPanel(Id);
-      Notificaciones.Exito("Reembolso realizado", "La reserva ha sido cancelada.");
-      await Cargar();
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al reembolsar");
-      Notificaciones.Error(Titulo, Descripcion);
-    }
+  function ConfirmarAccionPago() {
+    if (!ConfirmacionPago) return;
+    if (ConfirmacionPago.tipo === "procesar") MutacionProcesar.mutate(ConfirmacionPago.id);
+    else MutacionReembolsar.mutate(ConfirmacionPago.id);
+    setConfirmacionPago(null);
   }
+
+  const MostrarModalProcesar = ConfirmacionPago?.tipo === "procesar";
+  const MostrarModalReembolsar = ConfirmacionPago?.tipo === "reembolsar";
 
   return (
     <div>
@@ -188,7 +218,7 @@ export default function PaginaPagosAdmin() {
                   <td className="px-4 py-3">{p.id}</td>
                   <td className="px-4 py-3">{p.reserva_id}</td>
                   <td className="px-4 py-3">${parseFloat(p.monto).toFixed(2)}</td>
-                  <td className="px-4 py-3">{p.tipo ?? "cargo"}</td>
+                  <td className="px-4 py-3">{EtiquetaTipoPago(p.tipo)}</td>
                   <td className="px-4 py-3">{p.metodo_pago}</td>
                   <td className="px-4 py-3">{BadgeEstado(p.estado)}</td>
                   <td className="px-4 py-3">{p.numero_transaccion ?? "N/A"}</td>
@@ -200,7 +230,7 @@ export default function PaginaPagosAdmin() {
                       {p.estado === "pendiente" && (
                         <button
                           type="button"
-                          onClick={() => Procesar(p.id)}
+                          onClick={() => SolicitarProcesar(p.id)}
                           className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700"
                         >
                           Procesar
@@ -210,7 +240,7 @@ export default function PaginaPagosAdmin() {
                         p.tipo !== "reembolso" && (
                           <button
                             type="button"
-                            onClick={() => Reembolsar(p.id)}
+                            onClick={() => SolicitarReembolsar(p.id)}
                             className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
                           >
                             Reembolsar
@@ -224,6 +254,23 @@ export default function PaginaPagosAdmin() {
           </table>
         </div>
       )}
+      <ModalConfirmacion
+        Abierto={MostrarModalProcesar}
+        Titulo="Procesar pago"
+        Mensaje="¿Procesar este pago?"
+        TextoConfirmar="Procesar"
+        AlConfirmar={ConfirmarAccionPago}
+        AlCancelar={() => setConfirmacionPago(null)}
+      />
+      <ModalConfirmacion
+        Abierto={MostrarModalReembolsar}
+        Titulo="Reembolsar pago"
+        Mensaje="¿Estás seguro de reembolsar este pago? La reserva asociada será cancelada."
+        TextoConfirmar="Reembolsar"
+        Variante="peligro"
+        AlConfirmar={ConfirmarAccionPago}
+        AlCancelar={() => setConfirmacionPago(null)}
+      />
     </div>
   );
 }

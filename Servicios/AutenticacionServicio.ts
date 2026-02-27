@@ -1,5 +1,11 @@
 import type { TokenResponse, UsuarioAlmacenado } from "@/Tipos/Auth";
-import { EliminarSesion, GuardarToken, GuardarUsuario, HacerRequest } from "./ApiCliente";
+import {
+  EliminarSesion,
+  GuardarToken,
+  GuardarUsuario,
+  HacerRequest,
+  ObtenerRefreshToken,
+} from "./ApiCliente";
 
 export interface DatosLogin {
   email: string;
@@ -44,8 +50,24 @@ export async function ComprobarPermisoUsuarios(): Promise<boolean> {
   return res.ok;
 }
 
-export function CerrarSesion(): void {
-  EliminarSesion();
+export async function CerrarSesion(): Promise<void> {
+  try {
+    if (typeof window !== "undefined") {
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "https://backendhotelv2.fly.dev/api/v1";
+      const refresh = ObtenerRefreshToken();
+      if (refresh) {
+        await fetch(`${base}/auth/logout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refresh }),
+        });
+      }
+    }
+  } catch {
+    // Ignorar errores del endpoint de logout; igual se limpiará la sesión local
+  } finally {
+    EliminarSesion();
+  }
 }
 
 export function PersistirSesion(tokenData: TokenResponse, usuario: UsuarioAlmacenado): void {

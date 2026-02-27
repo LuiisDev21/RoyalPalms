@@ -29,7 +29,7 @@ interface EstadoAuth {
 interface AuthContextValor extends EstadoAuth {
   IniciarSesion: (datos: DatosLogin) => Promise<void>;
   RegistrarUsuario: (datos: DatosRegistro) => Promise<void>;
-  CerrarSesion: () => void;
+  CerrarSesion: () => Promise<void>;
   RefrescarUsuario: () => Promise<void>;
 }
 
@@ -87,8 +87,8 @@ export function ProveedorAuth({ children }: { children: React.ReactNode }) {
     await RegistrarUsuarioServicio(datos);
   }, []);
 
-  const CerrarSesion = useCallback(() => {
-    CerrarSesionServicio();
+  const CerrarSesion = useCallback(async () => {
+    await CerrarSesionServicio();
     setUsuario(null);
   }, []);
 

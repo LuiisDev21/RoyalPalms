@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   ListarMisReservas,
   type ReservaClienteResponse,
 } from "@/Servicios/ClienteApiServicio";
+import { ClavesQueryMiCuenta } from "@/Utilidades/QueryKeysMiCuenta";
+import { FormatearMontoConMoneda, ObtenerPrecioTotalNumerico } from "@/Utilidades/FormatearMoneda";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
-import { useEffect, useState } from "react";
 
 function BadgeEstado(Estado: string) {
   const Clases: Record<string, string> = {
@@ -41,8 +44,9 @@ function TarjetaReserva({
     month: "short",
     year: "numeric",
   });
-  const Precio = parseFloat(Reserva.precio_total);
-  const PrecioTexto = Number.isNaN(Precio) ? "—" : `$${Precio.toFixed(2)}`;
+  const Precio = ObtenerPrecioTotalNumerico(Reserva.precio_total);
+  const Moneda = Reserva.moneda ?? "USD";
+  const PrecioTexto = FormatearMontoConMoneda(Precio, Moneda);
   const PuedeCancelar =
     Reserva.estado !== "cancelada" &&
     Reserva.estado !== "completada";
@@ -91,28 +95,24 @@ function TarjetaReserva({
 }
 
 export default function PaginaMisReservas() {
-  const [Reservas, setReservas] = useState<ReservaClienteResponse[]>([]);
-  const [Cargando, setCargando] = useState(true);
-
-  async function Cargar() {
-    setCargando(true);
-    try {
-      const r = await ListarMisReservas();
-      setReservas(r);
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
-        e,
-        "Error al cargar reservas"
-      );
-      Notificaciones.Error(Titulo, Descripcion);
-    } finally {
-      setCargando(false);
-    }
-  }
+  const {
+    data: Reservas = [],
+    isLoading: Cargando,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ClavesQueryMiCuenta.ListaReservas,
+    queryFn: ListarMisReservas,
+  });
 
   useEffect(() => {
-    Cargar();
-  }, []);
+    if (!isError || !error) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
+      error,
+      "Error al cargar reservas"
+    );
+    Notificaciones.Error(Titulo, Descripcion);
+  }, [isError, error]);
 
   return (
     <div>

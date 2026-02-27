@@ -22,8 +22,8 @@ export function EncabezadoPanel() {
       Usuario.roles.map((r) => FormatearRol(r.nombre)).join(", ")
     : "";
 
-  function AlCerrarSesion() {
-    CerrarSesion();
+  async function AlCerrarSesion() {
+    await CerrarSesion();
     router.push("/login");
   }
 

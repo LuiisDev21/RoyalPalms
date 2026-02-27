@@ -3,17 +3,22 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   BuscarHabitacionesDisponiblesCliente,
   CrearReservaCliente,
   ListarTiposHabitacionCliente,
+  type ReservaClienteResponse,
 } from "@/Servicios/ClienteApiServicio";
+import { DesglosePrecios, TieneDesgloseCompleto } from "@/Componentes/Base/DesglosePrecios";
 import type { HabitacionResponse } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
+import { FormatearMontoConMoneda } from "@/Utilidades/FormatearMoneda";
 import type { TipoHabitacionResponse } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
 import {
   FormularioBusquedaHabitaciones,
   type DatosBusquedaHabitaciones,
 } from "@/Caracteristicas/Habitaciones/Componentes/FormularioBusquedaHabitaciones";
+import { ClavesQueryMiCuenta } from "@/Utilidades/QueryKeysMiCuenta";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
 import { useRouter } from "next/navigation";
@@ -27,6 +32,7 @@ function CalcularNoches(Entrada: string, Salida: string): number {
 
 export default function PaginaNuevaReserva() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [Tipos, setTipos] = useState<TipoHabitacionResponse[]>([]);
   const [FechaEntrada, setFechaEntrada] = useState("");
   const [FechaSalida, setFechaSalida] = useState("");
@@ -35,6 +41,31 @@ export default function PaginaNuevaReserva() {
   const [Buscando, setBuscando] = useState(false);
   const [Habitaciones, setHabitaciones] = useState<HabitacionResponse[]>([]);
   const [ReservandoId, setReservandoId] = useState<number | null>(null);
+  const [ReservaCreada, setReservaCreada] = useState<ReservaClienteResponse | null>(null);
+
+  const MutacionReservar = useMutation({
+    mutationFn: (payload: {
+      habitacion_id: number;
+      fecha_entrada: string;
+      fecha_salida: string;
+      numero_huespedes: number;
+      notas: string | null;
+    }) => CrearReservaCliente(payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryMiCuenta.ListaReservas });
+      setReservandoId(null);
+      setReservaCreada(data);
+      Notificaciones.Exito("Reserva creada", "Revisa el desglose y total a continuación.");
+    },
+    onError: (e) => {
+      setReservandoId(null);
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
+        e,
+        "Error al crear la reserva"
+      );
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
 
   useEffect(() => {
     ListarTiposHabitacionCliente()
@@ -84,30 +115,77 @@ export default function PaginaNuevaReserva() {
     }
   }
 
-  async function Reservar(H: HabitacionResponse) {
+  function Reservar(H: HabitacionResponse) {
     if (!FechaEntrada || !FechaSalida) return;
     setReservandoId(H.id);
-    try {
-      await CrearReservaCliente({
-        habitacion_id: H.id,
-        fecha_entrada: FechaEntrada,
-        fecha_salida: FechaSalida,
-        numero_huespedes: NumeroHuespedes,
-        notas: Notas.trim() || null,
-      });
-      Notificaciones.Exito("Reserva creada", "Serás redirigido a tus reservas.");
-      router.push("/mi-cuenta/reservas");
-    } catch (e) {
-      setReservandoId(null);
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
-        e,
-        "Error al crear la reserva"
-      );
-      Notificaciones.Error(Titulo, Descripcion);
-    }
+    MutacionReservar.mutate({
+      habitacion_id: H.id,
+      fecha_entrada: FechaEntrada,
+      fecha_salida: FechaSalida,
+      numero_huespedes: NumeroHuespedes,
+      notas: Notas.trim() || null,
+    });
   }
 
   const Noches = FechaEntrada && FechaSalida ? CalcularNoches(FechaEntrada, FechaSalida) : 0;
+
+  if (ReservaCreada) {
+    const Moneda = ReservaCreada.moneda ?? "USD";
+    const PrecioTotalNum =
+      typeof ReservaCreada.precio_total === "number"
+        ? ReservaCreada.precio_total
+        : parseFloat(String(ReservaCreada.precio_total));
+    const PrecioTexto = FormatearMontoConMoneda(PrecioTotalNum, Moneda);
+    return (
+      <div>
+        <div className="mb-6 flex items-center gap-4">
+          <Link
+            href="/mi-cuenta/reservas"
+            className="text-sm text-[#5b564d] transition-colors hover:text-[#1c1a16]"
+          >
+            ← Mis reservas
+          </Link>
+        </div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-6">
+          <h1 className="FuenteTitulo text-2xl font-semibold text-[#1c1a16] md:text-3xl">
+            Reserva confirmada
+          </h1>
+          <p className="mt-2 text-sm text-[#5b564d]">
+            Tu reserva #{ReservaCreada.id}
+            {ReservaCreada.codigo_reserva ? ` (${ReservaCreada.codigo_reserva})` : ""} se ha creado correctamente. Total: {PrecioTexto}
+          </p>
+          {TieneDesgloseCompleto(ReservaCreada) && (
+            <div className="mt-6 rounded-lg border border-[#e5e0d8] bg-white p-4">
+              <DesglosePrecios
+                moneda={ReservaCreada.moneda!}
+                subtotal={ReservaCreada.subtotal!}
+                impuestos={ReservaCreada.impuestos!}
+                descuentos={ReservaCreada.descuentos!}
+                otros_cargos={ReservaCreada.otros_cargos!}
+                precio_total={PrecioTotalNum}
+              />
+            </div>
+          )}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => router.push(`/mi-cuenta/reservas/${ReservaCreada.id}`)}
+              className="rounded-lg bg-[#1c1a16] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
+            >
+              Ver detalle y pagos
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/mi-cuenta/reservas")}
+              className="rounded-lg border border-[#6a645a] bg-white px-4 py-2.5 text-sm font-medium text-[#5b564d] transition-colors hover:bg-[#f6f2ec] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
+            >
+              Mis reservas
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -153,7 +231,7 @@ export default function PaginaNuevaReserva() {
             Habitaciones disponibles
           </h2>
           <p className="mt-1 text-sm text-[#5b564d]">
-            {Noches} noche{Noches !== 1 ? "s" : ""} · Elige una para reservar
+            {Noches} noche{Noches !== 1 ? "s" : ""} · Elige una para reservar. El precio definitivo se indica al confirmar.
           </p>
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Habitaciones.map((H) => {
@@ -192,7 +270,10 @@ export default function PaginaNuevaReserva() {
                       <p className="mt-0.5 text-sm text-[#5b564d]">{H.tipo_nombre}</p>
                     )}
                     <p className="mt-2 text-sm font-medium text-[#1c1a16]">
-                      ${PrecioNoche.toFixed(0)}/noche · Total: ${Total.toFixed(2)}
+                      ${PrecioNoche.toFixed(0)}/noche · Total estimado: ${Total.toFixed(2)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-[#6a645a]">
+                      Precio aproximado. El total final lo indica el sistema al confirmar.
                     </p>
                     <button
                       type="button"

@@ -17,7 +17,7 @@ export function ObtenerToken(): string | null {
   return localStorage.getItem(ClaveToken);
 }
 
-function ObtenerRefreshToken(): string | null {
+export function ObtenerRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(ClaveRefreshToken);
 }

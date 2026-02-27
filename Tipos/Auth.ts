@@ -32,6 +32,7 @@ export function NormalizarNombreRol(nombre: string): NombreRol {
   if (n === "administrador" || n === "admin") return "administrador";
   if (n === "gerente") return "gerente";
   if (n === "recepcionista") return "recepcionista";
+  if (n === "huesped" || n === "huésped") return "huesped";
   return "huesped";
 }
 

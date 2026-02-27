@@ -6,6 +6,7 @@ import { EnlaceSidebar } from "@/Componentes/Comunes/EnlaceSidebar";
 import {
   PuedeVerSeccionConfiguracion,
   PuedeVerSeccionUsuarios,
+  PuedeVerReportesAuditoria,
   TienePermiso,
 } from "@/Utilidades/PermisosPanel";
 import Link from "next/link";
@@ -19,6 +20,7 @@ export function SidebarPanel() {
   const PuedePagos = TienePermiso(Roles, "pagos");
   const PuedePoliticas = TienePermiso(Roles, "politicas");
   const PuedeReportes = TienePermiso(Roles, "reportes");
+   const PuedeAuditoria = PuedeVerReportesAuditoria(Roles);
 
   return (
     <aside className="flex h-full w-64 flex-col bg-[#1c1a16] text-white">
@@ -101,6 +103,21 @@ export function SidebarPanel() {
           Icono={
             <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          }
+        />
+        <EnlaceSidebar
+          Href="/admin/auditoria"
+          Hijo="Auditoría"
+          Deshabilitado={!PuedeAuditoria}
+          Icono={
+            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4zm0 0c-3.866 0-7 1.79-7 4v1a2 2 0 002 2h10a2 2 0 002-2v-1c0-2.21-3.134-4-7-4z"
+              />
             </svg>
           }
         />

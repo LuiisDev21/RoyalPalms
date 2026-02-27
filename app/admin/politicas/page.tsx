@@ -1,31 +1,23 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ListarPoliticasCancelacionPanel } from "@/Servicios/PanelApiServicio";
-import type { PoliticaCancelacionResponse } from "@/Servicios/PanelApiServicio";
+import { ClavesQueryPanel } from "@/Utilidades/QueryKeysPanel";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
-import { useEffect, useState } from "react";
 
 export default function PaginaPoliticasAdmin() {
-  const [Politicas, setPoliticas] = useState<PoliticaCancelacionResponse[]>([]);
-  const [Cargando, setCargando] = useState(true);
-
-  async function Cargar() {
-    setCargando(true);
-    try {
-      const r = await ListarPoliticasCancelacionPanel(false);
-      setPoliticas(r);
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cargar políticas");
-      Notificaciones.Error(Titulo, Descripcion);
-    } finally {
-      setCargando(false);
-    }
-  }
+  const { data: Politicas = [], isLoading: Cargando, isError, error } = useQuery({
+    queryKey: ClavesQueryPanel.PoliticasCancelacion,
+    queryFn: () => ListarPoliticasCancelacionPanel(false),
+  });
 
   useEffect(() => {
-    Cargar();
-  }, []);
+    if (!isError || !error) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(error, "Error al cargar políticas");
+    Notificaciones.Error(Titulo, Descripcion);
+  }, [isError, error]);
 
   return (
     <div>

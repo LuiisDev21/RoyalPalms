@@ -1,46 +1,51 @@
 "use client";
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { ModalConfirmacion } from "@/Componentes/Base/ModalConfirmacion";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
+import { ClavesQueryPanel } from "@/Utilidades/QueryKeysPanel";
 import {
   ListarConfiguracionPanel,
   ActualizarConfiguracionPanel,
-  type ConfiguracionHotelItem,
 } from "@/Servicios/PanelApiServicio";
-import { useEffect, useState } from "react";
 
 export default function PaginaConfiguracionAdmin() {
-  const [Items, setItems] = useState<ConfiguracionHotelItem[]>([]);
-  const [Cargando, setCargando] = useState(true);
+  const queryClient = useQueryClient();
+  const [EditarItem, setEditarItem] = useState<{ clave: string; valorActual: string } | null>(null);
+  const { data: Items = [], isLoading: Cargando, isError, error } = useQuery({
+    queryKey: ClavesQueryPanel.Configuracion,
+    queryFn: () => ListarConfiguracionPanel(),
+  });
 
-  async function Cargar() {
-    setCargando(true);
-    try {
-      const r = await ListarConfiguracionPanel();
-      setItems(r);
-    } catch (err: unknown) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(err, "Error al cargar configuración");
-      Notificaciones.Error(Titulo, Descripcion);
-    } finally {
-      setCargando(false);
-    }
-  }
-
-  useEffect(() => {
-    Cargar();
-  }, []);
-
-  async function Editar(Clave: string, ValorActual: string) {
-    const NuevoValor = prompt("Nuevo valor:", ValorActual);
-    if (NuevoValor === null) return;
-    try {
-      await ActualizarConfiguracionPanel(Clave, NuevoValor);
+  const MutacionActualizar = useMutation({
+    mutationFn: ({ Clave, Valor }: { Clave: string; Valor: string }) =>
+      ActualizarConfiguracionPanel(Clave, Valor),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Configuracion });
       Notificaciones.Exito("Configuración actualizada correctamente");
-      await Cargar();
-    } catch (e: unknown) {
+    },
+    onError: (e: unknown) => {
       const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al actualizar");
       Notificaciones.Error(Titulo, Descripcion);
-    }
+    },
+  });
+
+  useEffect(() => {
+    if (!isError || !error) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(error, "Error al cargar configuración");
+    Notificaciones.Error(Titulo, Descripcion);
+  }, [isError, error]);
+
+  function SolicitarEditar(Clave: string, ValorActual: string) {
+    setEditarItem({ clave: Clave, valorActual: ValorActual });
+  }
+
+  function ConfirmarEditar(NuevoValor?: string) {
+    if (!EditarItem) return;
+    MutacionActualizar.mutate({ Clave: EditarItem.clave, Valor: NuevoValor ?? EditarItem.valorActual });
+    setEditarItem(null);
   }
 
   return (
@@ -77,7 +82,7 @@ export default function PaginaConfiguracionAdmin() {
                     {c.modificable !== false ? (
                       <button
                         type="button"
-                        onClick={() => Editar(c.clave, c.valor)}
+                        onClick={() => SolicitarEditar(c.clave, c.valor)}
                         className="rounded bg-[#1c1a16] px-2 py-1 text-xs text-white hover:bg-[#2d2a26]"
                       >
                         Editar
@@ -92,6 +97,17 @@ export default function PaginaConfiguracionAdmin() {
           </table>
         </div>
       )}
+      <ModalConfirmacion
+        Abierto={EditarItem !== null}
+        Titulo="Editar configuración"
+        Mensaje={EditarItem ? `Nuevo valor para «${EditarItem.clave}»:` : ""}
+        TextoConfirmar="Guardar"
+        MostrarEntrada
+        ValorEntradaInicial={EditarItem?.valorActual ?? ""}
+        EtiquetaEntrada="Nuevo valor"
+        AlConfirmar={ConfirmarEditar}
+        AlCancelar={() => setEditarItem(null)}
+      />
     </div>
   );
 }

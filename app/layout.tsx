@@ -1,4 +1,5 @@
 import { ProveedorNotificaciones } from "@/Componentes/Comunes/ProveedorNotificaciones";
+import { ProveedorReactQuery } from "@/Componentes/Comunes/ProveedorReactQuery";
 import { ProveedorAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
@@ -34,7 +35,9 @@ export default function DisenoRaiz({
     <html lang="es">
       <body className={`${FuenteCuerpo.variable} ${FuenteTitulo.variable} antialiased`}>
         <ProveedorNotificaciones>
-          <ProveedorAuth>{children}</ProveedorAuth>
+          <ProveedorReactQuery>
+            <ProveedorAuth>{children}</ProveedorAuth>
+          </ProveedorReactQuery>
         </ProveedorNotificaciones>
       </body>
     </html>

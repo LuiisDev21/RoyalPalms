@@ -4,14 +4,17 @@ import React from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DesglosePrecios, TieneDesgloseCompleto } from "@/Componentes/Base/DesglosePrecios";
+import { ModalConfirmacion } from "@/Componentes/Base/ModalConfirmacion";
 import {
   ObtenerReservaCliente,
   ListarPagosDeReserva,
   CancelarReservaCliente,
   CrearPagoCliente,
 } from "@/Servicios/ClienteApiServicio";
-import type { ReservaClienteResponse } from "@/Servicios/ClienteApiServicio";
-import type { TransaccionPagoClienteResponse } from "@/Servicios/ClienteApiServicio";
+import { ClavesQueryMiCuenta } from "@/Utilidades/QueryKeysMiCuenta";
+import { FormatearMontoConMoneda, ObtenerPrecioTotalNumerico } from "@/Utilidades/FormatearMoneda";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
 
@@ -65,60 +68,93 @@ export default function PaginaDetalleReserva() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const Id = typeof params.id === "string" ? parseInt(params.id, 10) : NaN;
   const QuiereCancelar = searchParams.get("cancelar") === "1";
 
-  const [Reserva, setReserva] = useState<ReservaClienteResponse | null>(null);
-  const [Pagos, setPagos] = useState<TransaccionPagoClienteResponse[]>([]);
-  const [Cargando, setCargando] = useState(true);
-  const [Cancelando, setCancelando] = useState(false);
   const [MostrarModalPago, setMostrarModalPago] = useState(false);
+  const [MostrarConfirmacionCancelar, setMostrarConfirmacionCancelar] = useState(false);
   const [MontoPago, setMontoPago] = useState("");
   const [MetodoPago, setMetodoPago] = useState("tarjeta_credito");
-  const [EnviandoPago, setEnviandoPago] = useState(false);
 
-  async function Cargar() {
-    if (Number.isNaN(Id)) return;
-    setCargando(true);
-    try {
-      const [r, p] = await Promise.all([
+  const {
+    data: DatosReserva,
+    isLoading: Cargando,
+    isError: ErrorCarga,
+    error: ErrorCargaObjeto,
+  } = useQuery({
+    queryKey: ClavesQueryMiCuenta.DetalleReserva(Id),
+    queryFn: async () => {
+      const [reserva, pagos] = await Promise.all([
         ObtenerReservaCliente(Id),
         ListarPagosDeReserva(Id),
       ]);
-      setReserva(r);
-      setPagos(p);
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
-        e,
-        "Error al cargar la reserva"
-      );
-      Notificaciones.Error(Titulo, Descripcion);
-      router.push("/mi-cuenta/reservas");
-    } finally {
-      setCargando(false);
-    }
-  }
+      return { reserva, pagos };
+    },
+    enabled: !Number.isNaN(Id),
+  });
+
+  const Reserva = DatosReserva?.reserva ?? null;
+  const Pagos = DatosReserva?.pagos ?? [];
 
   useEffect(() => {
-    Cargar();
-  }, [Id]);
+    if (!ErrorCarga || !ErrorCargaObjeto) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
+      ErrorCargaObjeto,
+      "Error al cargar la reserva"
+    );
+    Notificaciones.Error(Titulo, Descripcion);
+    router.push("/mi-cuenta/reservas");
+  }, [ErrorCarga, ErrorCargaObjeto, router]);
 
-  async function ConfirmarCancelar() {
-    if (!Reserva || Number.isNaN(Id)) return;
-    if (!confirm("¿Estás seguro de cancelar esta reserva?")) return;
-    setCancelando(true);
-    try {
-      await CancelarReservaCliente(Id);
+  const MutacionCancelar = useMutation({
+    mutationFn: () => CancelarReservaCliente(Id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryMiCuenta.ListaReservas });
+      queryClient.removeQueries({ queryKey: ClavesQueryMiCuenta.DetalleReserva(Id) });
       Notificaciones.Exito("Reserva cancelada");
       router.push("/mi-cuenta/reservas");
-    } catch (e) {
-      setCancelando(false);
+    },
+    onError: (e) => {
       const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
         e,
         "Error al cancelar"
       );
       Notificaciones.Error(Titulo, Descripcion);
-    }
+    },
+  });
+
+  const MutacionPago = useMutation({
+    mutationFn: (payload: { monto: string; metodo_pago: string }) =>
+      CrearPagoCliente({
+        reserva_id: Id,
+        monto: payload.monto,
+        metodo_pago: payload.metodo_pago,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryMiCuenta.DetalleReserva(Id) });
+      queryClient.invalidateQueries({ queryKey: ClavesQueryMiCuenta.ListaReservas });
+      Notificaciones.Exito("Pago registrado", "El pago quedará pendiente de procesar.");
+      setMostrarModalPago(false);
+      setMontoPago("");
+    },
+    onError: (e) => {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
+        e,
+        "Error al registrar el pago"
+      );
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
+
+  function SolicitarCancelarReserva() {
+    if (!Reserva || Number.isNaN(Id)) return;
+    setMostrarConfirmacionCancelar(true);
+  }
+
+  function ConfirmarCancelarReserva() {
+    MutacionCancelar.mutate();
+    setMostrarConfirmacionCancelar(false);
   }
 
   const CancelarDesdeQueryEjecutado = React.useRef(false);
@@ -131,10 +167,10 @@ export default function PaginaDetalleReserva() {
     )
       return;
     CancelarDesdeQueryEjecutado.current = true;
-    ConfirmarCancelar();
+    setMostrarConfirmacionCancelar(true);
   }, [QuiereCancelar, Reserva, Cargando]);
 
-  async function EnviarPago() {
+  function EnviarPago() {
     if (!Reserva || Number.isNaN(Id)) return;
     const Monto = parseFloat(MontoPago.replace(",", "."));
     const PendienteRedondeado = Math.round(PendientePago * 100) / 100;
@@ -150,27 +186,14 @@ export default function PaginaDetalleReserva() {
       );
       return;
     }
-    setEnviandoPago(true);
-    try {
-      await CrearPagoCliente({
-        reserva_id: Id,
-        monto: PendientePago.toFixed(2),
-        metodo_pago: MetodoPago,
-      });
-      Notificaciones.Exito("Pago registrado", "El pago quedará pendiente de procesar.");
-      setMostrarModalPago(false);
-      setMontoPago("");
-      await Cargar();
-    } catch (e) {
-      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(
-        e,
-        "Error al registrar el pago"
-      );
-      Notificaciones.Error(Titulo, Descripcion);
-    } finally {
-      setEnviandoPago(false);
-    }
+    MutacionPago.mutate({
+      monto: PendientePago.toFixed(2),
+      metodo_pago: MetodoPago,
+    });
   }
+
+  const Cancelando = MutacionCancelar.isPending;
+  const EnviandoPago = MutacionPago.isPending;
 
   if (Cargando || !Reserva) {
     return (
@@ -192,19 +215,21 @@ export default function PaginaDetalleReserva() {
     month: "long",
     year: "numeric",
   });
-  const PrecioTotal = parseFloat(Reserva.precio_total);
-  const PrecioTexto = Number.isNaN(PrecioTotal) ? "—" : `$${PrecioTotal.toFixed(2)}`;
-  const TotalPagado = Pagos
-    .filter((P) => P.estado === "completado")
-    .reduce((s, P) => s + parseFloat(P.monto), 0);
-  const PendientePago = Number.isNaN(PrecioTotal) ? 0 : Math.max(0, PrecioTotal - TotalPagado);
+  const MonedaReserva = Reserva.moneda ?? "USD";
+  const PrecioTotal = ObtenerPrecioTotalNumerico(Reserva.precio_total);
+  const PrecioTexto = FormatearMontoConMoneda(PrecioTotal, MonedaReserva);
+  const TotalPagado = Pagos.reduce((s, P) => s + parseFloat(P.monto), 0);
+  const PendientePago = Math.max(0, PrecioTotal - TotalPagado);
   const EstaPagadoCompleto = PendientePago < 0.01;
+  const TienePagoTotalCompletado = Pagos.some(
+    (P) => P.tipo === "cargo" && P.estado === "completado"
+  );
   const PuedeCancelar =
     Reserva.estado !== "cancelada" && Reserva.estado !== "completada";
   const PuedePagar =
     Reserva.estado !== "cancelada" &&
-    !EstaPagadoCompleto &&
-    Pagos.length === 0;
+    !TienePagoTotalCompletado &&
+    PendientePago > 0.01;
 
   return (
     <div>
@@ -248,7 +273,7 @@ export default function PaginaDetalleReserva() {
           {PuedeCancelar && (
             <button
               type="button"
-              onClick={ConfirmarCancelar}
+              onClick={SolicitarCancelarReserva}
               disabled={Cancelando}
               className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
             >
@@ -280,19 +305,35 @@ export default function PaginaDetalleReserva() {
               <dt className="text-[#6a645a]">Total reserva</dt>
               <dd className="font-medium text-[#1c1a16]">{PrecioTexto}</dd>
             </div>
+            {TieneDesgloseCompleto(Reserva) && (
+              <div className="pt-3 border-t border-[#e5e0d8]">
+                <DesglosePrecios
+                  moneda={Reserva.moneda!}
+                  subtotal={Reserva.subtotal!}
+                  impuestos={Reserva.impuestos!}
+                  descuentos={Reserva.descuentos!}
+                  otros_cargos={Reserva.otros_cargos!}
+                  precio_total={
+                    typeof Reserva.precio_total === "number"
+                      ? Reserva.precio_total
+                      : parseFloat(String(Reserva.precio_total))
+                  }
+                />
+              </div>
+            )}
             {TotalPagado > 0 && (
               <>
                 <div>
                   <dt className="text-[#6a645a]">Pagado</dt>
                   <dd className="font-medium text-[#1c1a16]">
-                    ${TotalPagado.toFixed(2)}
+                    {FormatearMontoConMoneda(TotalPagado, MonedaReserva)}
                   </dd>
                 </div>
                 {!EstaPagadoCompleto && (
                   <div>
                     <dt className="text-[#6a645a]">Pendiente</dt>
                     <dd className="font-medium text-[#1c1a16]">
-                      ${PendientePago.toFixed(2)}
+                      {FormatearMontoConMoneda(PendientePago, MonedaReserva)}
                     </dd>
                   </div>
                 )}
@@ -329,14 +370,20 @@ export default function PaginaDetalleReserva() {
             )
           ) : (
             <ul className="mt-4 space-y-3">
-              {Pagos.map((P) => (
+              {Pagos.map((P) => {
+                const MontoNum = parseFloat(P.monto);
+                const EsReembolso = P.tipo === "reembolso";
+                return (
                 <li
                   key={P.id}
                   className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e5e0d8] pb-3 last:border-0 last:pb-0"
                 >
                   <div>
                     <span className="font-medium text-[#1c1a16]">
-                      ${parseFloat(P.monto).toFixed(2)}
+                      {FormatearMontoConMoneda(MontoNum, MonedaReserva)}
+                      {EsReembolso && (
+                        <span className="ml-1.5 text-xs font-normal text-[#6a645a]">(Reembolso)</span>
+                      )}
                     </span>
                     <span className="ml-2 text-sm text-[#5b564d]">
                       {EtiquetaMetodoPago(P.metodo_pago)} · {BadgeEstadoPago(P.estado)}
@@ -348,7 +395,8 @@ export default function PaginaDetalleReserva() {
                       : new Date(P.fecha_creacion).toLocaleDateString("es-ES")}
                   </span>
                 </li>
-              ))}
+              );
+              })}
             </ul>
           )}
           {PuedePagar && (
@@ -379,8 +427,8 @@ export default function PaginaDetalleReserva() {
             </h2>
             <p className="mt-1 text-sm text-[#5b564d]">
               Total reserva: {PrecioTexto}
-              {TotalPagado > 0 && (
-                <> · Pendiente: ${PendientePago.toFixed(2)}</>
+              {TotalPagado !== 0 && (
+                <> · Pendiente: {FormatearMontoConMoneda(PendientePago, MonedaReserva)}</>
               )}
             </p>
             <div className="mt-4 space-y-4">
@@ -443,6 +491,15 @@ export default function PaginaDetalleReserva() {
           </div>
         </div>
       )}
+      <ModalConfirmacion
+        Abierto={MostrarConfirmacionCancelar}
+        Titulo="Cancelar reserva"
+        Mensaje="¿Estás seguro de cancelar esta reserva?"
+        TextoConfirmar="Cancelar reserva"
+        Variante="peligro"
+        AlConfirmar={ConfirmarCancelarReserva}
+        AlCancelar={() => setMostrarConfirmacionCancelar(false)}
+      />
     </div>
   );
 }
