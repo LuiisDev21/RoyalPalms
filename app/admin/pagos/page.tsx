@@ -21,9 +21,17 @@ function BadgeEstado(Estado: string) {
     en_proceso: "bg-amber-100 text-amber-800",
     disputado: "bg-amber-100 text-amber-800",
   };
+  const etiquetas: Record<string, string> = {
+    pendiente: "Pendiente",
+    completado: "Completado",
+    rechazado: "Rechazado",
+    reembolsado: "Reembolsado",
+    en_proceso: "En proceso",
+    disputado: "En disputa",
+  };
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${clases[Estado] ?? "bg-gray-100 text-gray-800"}`}>
-      {Estado}
+      {etiquetas[Estado] ?? Estado}
     </span>
   );
 }
@@ -236,7 +244,7 @@ export default function PaginaPagosAdmin() {
                           Procesar
                         </button>
                       )}
-                      {p.estado === "completado" &&
+                      {(p.estado === "completado" || p.estado === "disputado") &&
                         p.tipo !== "reembolso" && (
                           <button
                             type="button"

@@ -9,10 +9,12 @@ import {
 } from "@/Tipos/Auth";
 import { GuardarToken, GuardarUsuario as GuardarUsuarioStorage, ObtenerUsuarioAlmacenado } from "@/Servicios/ApiCliente";
 import {
+  ActualizarPerfilUsuario,
   CerrarSesion as CerrarSesionServicio,
   IniciarSesion as IniciarSesionServicio,
   ObtenerUsuarioActual,
   RegistrarUsuario as RegistrarUsuarioServicio,
+  type DatosActualizarPerfil,
   type DatosLogin,
   type DatosRegistro,
 } from "@/Servicios/AutenticacionServicio";
@@ -31,6 +33,7 @@ interface AuthContextValor extends EstadoAuth {
   RegistrarUsuario: (datos: DatosRegistro) => Promise<void>;
   CerrarSesion: () => Promise<void>;
   RefrescarUsuario: () => Promise<void>;
+  ActualizarPerfil: (datos: DatosActualizarPerfil) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValor | null>(null);
@@ -92,6 +95,12 @@ export function ProveedorAuth({ children }: { children: React.ReactNode }) {
     setUsuario(null);
   }, []);
 
+  const ActualizarPerfil = useCallback(async (datos: DatosActualizarPerfil) => {
+    const u = await ActualizarPerfilUsuario(datos);
+    setUsuario(u);
+    GuardarUsuarioStorage(u);
+  }, []);
+
   const estado = CalcularEstado(Usuario);
   const valor: AuthContextValor = {
     ...estado,
@@ -101,6 +110,7 @@ export function ProveedorAuth({ children }: { children: React.ReactNode }) {
     RegistrarUsuario,
     CerrarSesion,
     RefrescarUsuario,
+    ActualizarPerfil,
   };
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

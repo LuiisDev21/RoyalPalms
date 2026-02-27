@@ -81,6 +81,29 @@ export interface DatosCrearReserva {
   notas?: string | null;
 }
 
+export interface PrevisualizarPrecioResponse {
+  habitacion_id: number;
+  fecha_entrada: string;
+  fecha_salida: string;
+  numero_huespedes: number;
+  notas: string | null;
+  moneda: string;
+  subtotal: number;
+  impuestos: number;
+  descuentos: number;
+  otros_cargos: number;
+  precio_total: number;
+}
+
+export async function PrevisualizarPrecioReservaCliente(
+  Datos: DatosCrearReserva
+): Promise<PrevisualizarPrecioResponse> {
+  return HacerRequest<PrevisualizarPrecioResponse>("/reservas/previsualizar-precio", {
+    method: "POST",
+    body: JSON.stringify(Datos),
+  });
+}
+
 export async function CrearReservaCliente(
   Datos: DatosCrearReserva
 ): Promise<ReservaClienteResponse> {

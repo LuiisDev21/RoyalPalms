@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BuscarHabitacionesDisponiblesCliente,
   CrearReservaCliente,
   CrearPagoCliente,
   ListarTiposHabitacionCliente,
+  PrevisualizarPrecioReservaCliente,
   type ReservaClienteResponse,
 } from "@/Servicios/ClienteApiServicio";
 import { DesglosePrecios, TieneDesgloseCompleto } from "@/Componentes/Base/DesglosePrecios";
@@ -95,6 +96,35 @@ export default function PaginaNuevaReserva() {
   const MutacionPagoInicial = useMutation({
     mutationFn: (payload: { reserva_id: number; monto: string; metodo_pago: string }) =>
       CrearPagoCliente(payload),
+  });
+
+  const DatosPrevisualizacion =
+    HabitacionSeleccionada && FechaEntrada && FechaSalida
+      ? {
+          habitacion_id: HabitacionSeleccionada.id,
+          fecha_entrada: FechaEntrada,
+          fecha_salida: FechaSalida,
+          numero_huespedes: NumeroHuespedes,
+          notas: Notas.trim() || null,
+        }
+      : null;
+
+  const {
+    data: PrevisualizacionPrecio,
+    isLoading: CargandoPrevisualizacion,
+    isError: ErrorPrevisualizacion,
+    error: ErrorPrevisualizacionObjeto,
+  } = useQuery({
+    queryKey: [
+      "previsualizar-precio",
+      DatosPrevisualizacion?.habitacion_id,
+      DatosPrevisualizacion?.fecha_entrada,
+      DatosPrevisualizacion?.fecha_salida,
+      DatosPrevisualizacion?.numero_huespedes,
+      DatosPrevisualizacion?.notas ?? "",
+    ],
+    queryFn: () => PrevisualizarPrecioReservaCliente(DatosPrevisualizacion!),
+    enabled: Paso === "confirmacion" && !!DatosPrevisualizacion,
   });
 
   async function AlBuscarConDatos(datos: DatosBusquedaHabitaciones) {
@@ -278,10 +308,20 @@ export default function PaginaNuevaReserva() {
   }
 
   if (Paso === "confirmacion" && HabitacionSeleccionada) {
-    const PrecioNoche = parseFloat(HabitacionSeleccionada.precio_por_noche);
-    const TotalEstimado = Number.isNaN(PrecioNoche) ? 0 : PrecioNoche * Noches;
     const ProcesandoReserva =
       ReservandoId !== null || MutacionReservar.isPending || MutacionPagoInicial.isPending;
+    const PuedeConfirmar =
+      !!PrevisualizacionPrecio && !CargandoPrevisualizacion && !ErrorPrevisualizacion;
+    const MensajeErrorPrecio =
+      ErrorPrevisualizacion && ErrorPrevisualizacionObjeto
+        ? (() => {
+            const R = ObtenerTituloYDescripcionError(
+              ErrorPrevisualizacionObjeto,
+              "No se pudo calcular el precio"
+            );
+            return R.Descripcion || R.Titulo;
+          })()
+        : "";
 
     return (
       <div className="relative">
@@ -361,37 +401,37 @@ export default function PaginaNuevaReserva() {
           <div className="space-y-4">
             <div className="rounded-xl border border-[#e5e0d8] bg-white p-4 sm:p-5">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6a645a]">
-                Resumen de importe estimado
+                Precio total ({PrevisualizacionPrecio?.moneda ?? "—"})
               </h2>
-              <p className="mt-2 text-sm text-[#5b564d]">
-                Precio por noche:{" "}
-                <span className="font-medium text-[#1c1a16]">
-                  ${Number.isNaN(PrecioNoche) ? "0" : PrecioNoche.toFixed(2)}
-                </span>
-              </p>
-              <p className="mt-1 text-sm text-[#5b564d]">
-                Noches: <span className="font-medium text-[#1c1a16]">{Noches}</span>
-              </p>
-              <p className="mt-1 text-sm text-[#5b564d]">
-                Total estimado por estancia:{" "}
-                <span className="font-semibold text-[#1c1a16]">
-                  ${TotalEstimado.toFixed(2)}
-                </span>
-              </p>
-              <p className="mt-2 text-xs text-[#6a645a]">
-                El total definitivo, con impuestos y otros cargos aplicables, lo calculará el
-                sistema al confirmar la reserva.
-              </p>
+              {CargandoPrevisualizacion && (
+                <div className="mt-4 flex items-center gap-3 text-sm text-[#5b564d]">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#b88f3a] border-t-transparent" />
+                  <span>Cargando precio…</span>
+                </div>
+              )}
+              {ErrorPrevisualizacion && MensajeErrorPrecio && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+                  {MensajeErrorPrecio}
+                </div>
+              )}
+              {PrevisualizacionPrecio && !CargandoPrevisualizacion && !ErrorPrevisualizacion && (
+                <div className="mt-4">
+                  <DesglosePrecios
+                    moneda={PrevisualizacionPrecio.moneda}
+                    subtotal={PrevisualizacionPrecio.subtotal}
+                    impuestos={PrevisualizacionPrecio.impuestos}
+                    descuentos={PrevisualizacionPrecio.descuentos}
+                    otros_cargos={PrevisualizacionPrecio.otros_cargos}
+                    precio_total={PrevisualizacionPrecio.precio_total}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl border border-[#e5e0d8] bg-white p-4 sm:p-5">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6a645a]">
                 Método de pago
               </h2>
-              <p className="mt-1 text-xs text-[#6a645a]">
-                Se registrará un pago por el importe pendiente completo de la reserva. No se
-                permiten pagos parciales.
-              </p>
               <label
                 htmlFor="confirmacion-metodo-pago"
                 className="mt-3 block text-xs font-medium uppercase tracking-wider text-[#5b564d]"
@@ -515,12 +555,10 @@ export default function PaginaNuevaReserva() {
               <button
                 type="button"
                 onClick={ConfirmarReservaSeleccionada}
-                disabled={ReservandoId !== null || MutacionReservar.isPending || MutacionPagoInicial.isPending}
+                disabled={!PuedeConfirmar || ProcesandoReserva}
                 className="flex-1 rounded-lg bg-[#b88f3a] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#a67c32] disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
               >
-                {ReservandoId !== null || MutacionReservar.isPending || MutacionPagoInicial.isPending
-                  ? "Confirmando…"
-                  : "Confirmar reserva"}
+                {ProcesandoReserva ? "Confirmando…" : "Confirmar reserva"}
               </button>
             </div>
           </div>

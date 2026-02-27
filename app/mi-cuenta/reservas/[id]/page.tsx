@@ -42,12 +42,20 @@ function BadgeEstadoPago(Estado: string) {
     completado: "bg-emerald-100 text-emerald-800",
     rechazado: "bg-red-100 text-red-800",
     reembolsado: "bg-sky-100 text-sky-800",
+    disputado: "bg-orange-100 text-orange-800",
+  };
+  const Etiquetas: Record<string, string> = {
+    pendiente: "Pendiente",
+    completado: "Completado",
+    rechazado: "Rechazado",
+    reembolsado: "Reembolsado",
+    disputado: "En disputa",
   };
   return (
     <span
       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${Clases[Estado] ?? "bg-gray-100 text-gray-800"}`}
     >
-      {Estado}
+      {Etiquetas[Estado] ?? Estado}
     </span>
   );
 }
@@ -99,8 +107,11 @@ export default function PaginaDetalleReserva() {
     mutationFn: () => CancelarReservaCliente(Id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryMiCuenta.ListaReservas });
-      queryClient.removeQueries({ queryKey: ClavesQueryMiCuenta.DetalleReserva(Id) });
-      Notificaciones.Exito("Reserva cancelada");
+      queryClient.invalidateQueries({ queryKey: ClavesQueryMiCuenta.DetalleReserva(Id) });
+      Notificaciones.Exito(
+        "Reserva cancelada",
+        "Tu pago pasará a estado en disputa y será revisado por el hotel.",
+      );
       router.push("/mi-cuenta/reservas");
     },
     onError: (e) => {
@@ -212,6 +223,7 @@ export default function PaginaDetalleReserva() {
   const TienePagoTotalCompletado = Pagos.some(
     (P) => P.tipo === "cargo" && P.estado === "completado"
   );
+  const TienePagosDisputados = Pagos.some((P) => P.estado === "disputado");
   const PuedeCancelar =
     Reserva.estado !== "cancelada" && Reserva.estado !== "completada";
   const PuedePagar =
@@ -340,12 +352,17 @@ export default function PaginaDetalleReserva() {
           <h2 className="FuenteTitulo text-lg font-semibold text-[#1c1a16]">
             Pagos
           </h2>
-          {EstaPagadoCompleto && (
+          {Reserva.estado === "cancelada" && TienePagosDisputados && (
+            <p className="mt-4 text-sm font-medium text-amber-800">
+              Pago en disputa, a la espera de revisión por parte del hotel.
+            </p>
+          )}
+          {Reserva.estado !== "cancelada" && EstaPagadoCompleto && (
             <p className="mt-4 text-sm font-medium text-emerald-700">
               Esta reserva está pagada en su totalidad.
             </p>
           )}
-          {Pagos.length > 0 && !EstaPagadoCompleto && (
+          {Reserva.estado !== "cancelada" && Pagos.length > 0 && !EstaPagadoCompleto && (
             <p className="mt-4 text-sm text-[#5b564d]">
               Solo puede registrarse un pago por reserva. Si tu pago está pendiente, se procesará próximamente.
             </p>

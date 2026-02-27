@@ -77,6 +77,7 @@ export default function PaginaReservasAdmin() {
     mutationFn: CancelarReservaPanel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Pagos });
       setModalReserva(null);
       Notificaciones.Exito("Reserva cancelada correctamente");
     },
@@ -284,7 +285,7 @@ export default function PaginaReservasAdmin() {
                             No-show
                           </button>
                         )}
-                        {PuedeCancelar && r.estado !== "cancelada" && (
+                        {PuedeCancelar && r.estado !== "cancelada" && r.estado !== "completada" && (
                           <button
                             type="button"
                             onClick={() => SolicitarCancelar(r.id)}

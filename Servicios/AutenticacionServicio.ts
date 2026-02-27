@@ -40,6 +40,21 @@ export async function ObtenerUsuarioActual(): Promise<UsuarioAlmacenado> {
   return HacerRequest<UsuarioAlmacenado>("/auth/me");
 }
 
+export interface DatosActualizarPerfil {
+  nombre?: string;
+  apellido?: string;
+  telefono?: string | null;
+}
+
+export async function ActualizarPerfilUsuario(
+  Datos: DatosActualizarPerfil
+): Promise<UsuarioAlmacenado> {
+  return HacerRequest<UsuarioAlmacenado>("/auth/me", {
+    method: "PUT",
+    body: JSON.stringify(Datos),
+  });
+}
+
 export async function ComprobarPermisoUsuarios(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   const base = process.env.NEXT_PUBLIC_API_URL ?? "https://backendhotelv2.fly.dev/api/v1";
