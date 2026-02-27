@@ -17,6 +17,7 @@ import { ClavesQueryMiCuenta } from "@/Utilidades/QueryKeysMiCuenta";
 import { FormatearMontoConMoneda, ObtenerPrecioTotalNumerico } from "@/Utilidades/FormatearMoneda";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
+import { EtiquetaMetodoPagoApi, MetodosPagoApi } from "@/Utilidades/MetodosPago";
 
 function BadgeEstado(Estado: string) {
   const Clases: Record<string, string> = {
@@ -49,19 +50,6 @@ function BadgeEstadoPago(Estado: string) {
       {Estado}
     </span>
   );
-}
-
-const METODOS_PAGO_API: { valor: string; etiqueta: string }[] = [
-  { valor: "tarjeta_credito", etiqueta: "Tarjeta de crédito" },
-  { valor: "tarjeta_debito", etiqueta: "Tarjeta de débito" },
-  { valor: "efectivo", etiqueta: "Efectivo" },
-  { valor: "transferencia", etiqueta: "Transferencia" },
-  { valor: "paypal", etiqueta: "PayPal" },
-  { valor: "cripto", etiqueta: "Criptomoneda" },
-];
-
-function EtiquetaMetodoPago(valor: string): string {
-  return METODOS_PAGO_API.find((M) => M.valor === valor)?.etiqueta ?? valor;
 }
 
 export default function PaginaDetalleReserva() {
@@ -374,28 +362,28 @@ export default function PaginaDetalleReserva() {
                 const MontoNum = parseFloat(P.monto);
                 const EsReembolso = P.tipo === "reembolso";
                 return (
-                <li
-                  key={P.id}
-                  className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e5e0d8] pb-3 last:border-0 last:pb-0"
-                >
-                  <div>
-                    <span className="font-medium text-[#1c1a16]">
-                      {FormatearMontoConMoneda(MontoNum, MonedaReserva)}
-                      {EsReembolso && (
-                        <span className="ml-1.5 text-xs font-normal text-[#6a645a]">(Reembolso)</span>
-                      )}
+                  <li
+                    key={P.id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e5e0d8] pb-3 last:border-0 last:pb-0"
+                  >
+                    <div>
+                      <span className="font-medium text-[#1c1a16]">
+                        {FormatearMontoConMoneda(MontoNum, MonedaReserva)}
+                        {EsReembolso && (
+                          <span className="ml-1.5 text-xs font-normal text-[#6a645a]">(Reembolso)</span>
+                        )}
+                      </span>
+                      <span className="ml-2 text-sm text-[#5b564d]">
+                        {EtiquetaMetodoPagoApi(P.metodo_pago)} · {BadgeEstadoPago(P.estado)}
+                      </span>
+                    </div>
+                    <span className="text-xs text-[#6a645a]">
+                      {P.fecha_pago
+                        ? new Date(P.fecha_pago).toLocaleDateString("es-ES")
+                        : new Date(P.fecha_creacion).toLocaleDateString("es-ES")}
                     </span>
-                    <span className="ml-2 text-sm text-[#5b564d]">
-                      {EtiquetaMetodoPago(P.metodo_pago)} · {BadgeEstadoPago(P.estado)}
-                    </span>
-                  </div>
-                  <span className="text-xs text-[#6a645a]">
-                    {P.fecha_pago
-                      ? new Date(P.fecha_pago).toLocaleDateString("es-ES")
-                      : new Date(P.fecha_creacion).toLocaleDateString("es-ES")}
-                  </span>
-                </li>
-              );
+                  </li>
+                );
               })}
             </ul>
           )}
@@ -451,7 +439,10 @@ export default function PaginaDetalleReserva() {
                 </p>
               </div>
               <div>
-                <label htmlFor="pago-metodo" className="block text-xs font-medium uppercase tracking-wider text-[#5b564d]">
+                <label
+                  htmlFor="pago-metodo"
+                  className="block text-xs font-medium uppercase tracking-wider text-[#5b564d]"
+                >
                   Método de pago
                 </label>
                 <select
@@ -460,9 +451,9 @@ export default function PaginaDetalleReserva() {
                   onChange={(e) => setMetodoPago(e.target.value)}
                   className="mt-1.5 w-full rounded-lg border border-[#6a645a]/40 px-3 py-2 text-[#1c1a16] focus:border-[#b88f3a] focus:outline-none focus:ring-1 focus:ring-[#b88f3a]"
                 >
-                  {METODOS_PAGO_API.map((M) => (
-                    <option key={M.valor} value={M.valor}>
-                      {M.etiqueta}
+                  {MetodosPagoApi.map((M) => (
+                    <option key={M.Valor} value={M.Valor}>
+                      {M.Etiqueta}
                     </option>
                   ))}
                 </select>
