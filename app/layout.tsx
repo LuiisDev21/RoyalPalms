@@ -3,7 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Royal Palm",
+  title: "Royal Palms",
   description: "Tu hotel, tu momento.",
 };
 
