@@ -10,17 +10,17 @@ function IndicadorEstadistica({
 }) {
   return (
     <div>
-      <div className="FuenteTitulo text-2xl text-[#b88f3a] md:text-3xl">
+      <div className="FuenteTitulo text-3xl font-bold text-gold-500 md:text-4xl">
         {Valor}
       </div>
-      <div className="mt-1 text-[11px] text-[#6a645a]">{Etiqueta}</div>
+      <div className="mt-2 text-sm text-white/70">{Etiqueta}</div>
     </div>
   );
 }
 
 export function SeccionHistoria() {
   return (
-    <section id="Nosotros" className="bg-[#ffffff] px-6 py-24">
+    <section id="Nosotros" className="bg-black px-6 py-24 text-white">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-2 md:gap-16">
         <div className="relative mx-auto w-full max-w-xl">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
@@ -35,14 +35,14 @@ export function SeccionHistoria() {
         </div>
 
         <div>
-          <p className="text-xs tracking-[0.35em] text-[#b88f3a]">
+          <p className="text-xs tracking-[0.35em] text-gold-500">
             NUESTRA HISTORIA
           </p>
-          <h2 className="FuenteTitulo mt-3 text-3xl leading-tight text-[#1c1a16] md:text-4xl">
+          <h2 className="FuenteTitulo mt-3 text-3xl leading-tight text-white md:text-4xl">
             Un legado de elegancia y hospitalidad
           </h2>
 
-          <div className="mt-6 space-y-4 text-sm leading-relaxed text-[#5b564d]">
+          <div className="mt-6 space-y-4 text-sm leading-relaxed text-white/80">
             <p>
               Desde nuestra fundación, Royal Palm ha sido sinónimo de excelencia
               y sofisticación. Ubicado en un entorno natural privilegiado,
