@@ -6,7 +6,7 @@ import { LogoMarca } from "@/Componentes/Comunes/LogoMarca";
 
 const EnlacesNavegacion = [
   { Texto: "Inicio", HRef: "/" },
-  { Texto: "Habitaciones", HRef: "/#Habitaciones" },
+{ Texto: "Habitaciones", HRef: "/Habitaciones" },
   { Texto: "Nosotros", HRef: "/#Nosotros" },
   { Texto: "Contacto", HRef: "/#Contacto" },
 ] as const;
