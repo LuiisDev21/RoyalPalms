@@ -55,7 +55,7 @@ function IconoCerrar({ ClaseAdicional }: { ClaseAdicional?: string }) {
   );
 }
 
-export function BarraNavegacion() {
+export function BarraNavegacion({ ForzarTemaClaro }: { ForzarTemaClaro?: boolean } = {}) {
   const [EstaFlotante, PonerEstaFlotante] = useState(false);
   const [EsTemaClaro, PonerEsTemaClaro] = useState(false);
   const [EstaMenuMovilAbierto, PonerEstaMenuMovilAbierto] = useState(false);
@@ -67,7 +67,11 @@ export function BarraNavegacion() {
       const UmbralTemaClaro = Math.max(UmbralFlotante, window.innerHeight - 120);
 
       PonerEstaFlotante(PosicionVertical > UmbralFlotante);
-      PonerEsTemaClaro(PosicionVertical > UmbralTemaClaro);
+      if (typeof ForzarTemaClaro === "boolean") {
+        PonerEsTemaClaro(ForzarTemaClaro);
+      } else {
+        PonerEsTemaClaro(PosicionVertical > UmbralTemaClaro);
+      }
     }
 
     AlHacerScroll();
