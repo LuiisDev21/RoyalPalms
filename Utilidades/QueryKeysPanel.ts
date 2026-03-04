@@ -5,6 +5,7 @@ export const ClavesQueryPanel = {
   Reservas: ["admin", "reservas"] as const,
   Pagos: ["admin", "pagos"] as const,
   Usuarios: ["admin", "usuarios"] as const,
+  Roles: ["admin", "roles"] as const,
   Configuracion: ["admin", "configuracion"] as const,
   Auditoria: (FechaDesde: string | null, FechaHasta: string | null) =>
     ["admin", "auditoria", FechaDesde, FechaHasta] as const,
