@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { BotonEnlace } from "@/Componentes/Base/BotonEnlace";
+
 interface Props {
   titulo: string;
   descripcion: string;
@@ -11,12 +12,13 @@ interface Props {
 export const HabitacionCard = ({ titulo, descripcion, precio, equipamiento, imagen }: Props) => {
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full">
-      {/* Contenedor de Imagen */}
+      {/* Contenedor de Imagen - CORREGIDO PARA NEXT/IMAGE */}
       <div className="relative h-64 w-full">
-        <img 
+        <Image 
           src={imagen} 
           alt={titulo} 
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
         />
       </div>
 
@@ -40,7 +42,7 @@ export const HabitacionCard = ({ titulo, descripcion, precio, equipamiento, imag
         </div>
 
         {/* Footer de la tarjeta: Precio y Acción */}
-        <div className="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
+        <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
           <div>
             <span className="text-xs text-gray-400 block uppercase">Desde</span>
             <span className="text-xl font-bold text-[#b88f3a]">
