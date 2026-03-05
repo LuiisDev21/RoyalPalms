@@ -18,17 +18,28 @@ function ExtraerDetalleTexto(err: unknown): string | null {
     }
     if ("detail" in err) {
       const d = (err as { detail: unknown }).detail;
-      if (typeof d === "string") return d;
-      if (Array.isArray(d)) {
-        const mensajes = (d as DetalleItem[])
-          .map((x) => x.msg ?? x.message ?? "")
-          .filter(Boolean);
-        if (mensajes.length) return mensajes.join(". ");
-      }
+      const extraido = ExtraerMensajeDeDetalle(d);
+      if (extraido) return extraido;
     }
   }
   if (typeof err === "string") return err;
   return null;
+}
+
+export function ExtraerMensajeDeDetalle(detail: unknown): string {
+  if (detail == null) return "";
+  if (Array.isArray(detail)) {
+    const mensajes = (detail as DetalleItem[])
+      .map((x) => x.msg ?? x.message ?? "")
+      .filter(Boolean);
+    return mensajes.length ? mensajes.join(", ") : "Error en la petición";
+  }
+  if (typeof detail === "object" && "message" in detail) {
+    const m = (detail as { message: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  if (typeof detail === "string") return detail;
+  return "Error en la petición";
 }
 
 export function MensajeDeError(err: unknown, PorDefecto: string): string {

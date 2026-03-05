@@ -1,11 +1,12 @@
 import type { TokenResponse, UsuarioAlmacenado } from "@/Tipos/Auth";
+import { ExtraerMensajeDeDetalle } from "@/Utilidades/MensajeDeError";
 
 const ClaveToken = "token";
 const ClaveRefreshToken = "refresh_token";
 const ClaveTokenExpira = "token_expires_at";
 const ClaveUsuario = "usuario";
 
-function ObtenerBaseUrl(): string {
+export function ObtenerBaseUrl(): string {
   if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
@@ -56,33 +57,18 @@ export function ObtenerUsuarioAlmacenado(): UsuarioAlmacenado | null {
   }
 }
 
-interface DetalleError {
-  loc?: (string | number)[];
-  msg?: string;
-  type?: string;
-}
-
-function ExtraerMensajeError(detail: unknown): string {
-  if (Array.isArray(detail)) {
-    const mensajes = (detail as DetalleError[]).map((d) => d.msg ?? "").filter(Boolean);
-    return mensajes.join(", ") || "Error en la petición";
-  }
-  if (detail && typeof detail === "object" && "message" in detail) return String((detail as { message: string }).message);
-  if (typeof detail === "string") return detail;
-  return "Error en la petición";
-}
-
 async function RefrescarToken(): Promise<TokenResponse> {
   const refresh = ObtenerRefreshToken();
   if (!refresh) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
   const base = ObtenerBaseUrl();
+  if (!base) throw new Error("NEXT_PUBLIC_API_URL no está configurada.");
   const res = await fetch(`${base}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refresh }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(ExtraerMensajeError(data.detail) || "Refresh fallido");
+  if (!res.ok) throw new Error(ExtraerMensajeDeDetalle(data.detail) || "Refresh fallido");
   GuardarToken(data);
   return data;
 }
@@ -93,6 +79,7 @@ export async function HacerRequest<T>(
   reintentar401 = true
 ): Promise<T> {
   const base = ObtenerBaseUrl();
+  if (!base) throw new Error("NEXT_PUBLIC_API_URL no está configurada.");
   const url = `${base}${endpoint}`;
   const token = ObtenerToken();
   const headers: HeadersInit = {
@@ -115,7 +102,7 @@ export async function HacerRequest<T>(
     }
   }
 
-  if (!res.ok) throw new Error(ExtraerMensajeError(data.detail));
+  if (!res.ok) throw new Error(ExtraerMensajeDeDetalle(data.detail));
   return data as T;
 }
 
@@ -125,6 +112,7 @@ export async function HacerRequestFormData<T>(
   metodo: "POST" | "PUT" = "POST"
 ): Promise<T> {
   const base = ObtenerBaseUrl();
+  if (!base) throw new Error("NEXT_PUBLIC_API_URL no está configurada.");
   const url = `${base}${endpoint}`;
   const token = ObtenerToken();
   const headers: HeadersInit = {};
@@ -144,6 +132,6 @@ export async function HacerRequestFormData<T>(
     }
   }
 
-  if (!res.ok) throw new Error(ExtraerMensajeError(data.detail));
+  if (!res.ok) throw new Error(ExtraerMensajeDeDetalle(data.detail));
   return data as T;
 }

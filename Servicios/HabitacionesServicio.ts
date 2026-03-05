@@ -2,8 +2,9 @@ import type {
   HabitacionResponse,
   TipoHabitacionResponse,
 } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
+import { ObtenerBaseUrl } from "./ApiCliente";
 
-const BaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BaseUrl = ObtenerBaseUrl();
 
 function ConstruirUrl(
   Ruta: string,

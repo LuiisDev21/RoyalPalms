@@ -2,8 +2,7 @@ import type {
   HabitacionResponse,
   TipoHabitacionResponse,
 } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
-import { MensajeDeError } from "@/Utilidades/MensajeDeError";
-import { HacerRequest, HacerRequestFormData, ObtenerToken } from "./ApiCliente";
+import { HacerRequest, HacerRequestFormData } from "./ApiCliente";
 
 export interface PoliticaCancelacionResponse {
   id: number;
@@ -262,25 +261,10 @@ export async function ActualizarRolesUsuarioPanel(
   UsuarioId: number,
   RolIds: number[]
 ): Promise<UsuarioPanelResponse> {
-  const Base =
-    (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) || "";
-  const Token = ObtenerToken();
-  const Res = await fetch(`${Base}/auth/usuarios/${UsuarioId}/roles`, {
+  return HacerRequest<UsuarioPanelResponse>(`/auth/usuarios/${UsuarioId}/roles`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(Token ? { Authorization: `Bearer ${Token}` } : {}),
-    },
     body: JSON.stringify({ rol_ids: RolIds }),
   });
-  const Data = (await Res.json().catch(() => ({}))) as { detail?: unknown };
-  if (Res.status === 403) {
-    throw new Error("No tienes permiso para cambiar roles");
-  }
-  if (!Res.ok) {
-    throw new Error(MensajeDeError(Data.detail ?? Data, "Error al actualizar roles"));
-  }
-  return Data as unknown as UsuarioPanelResponse;
 }
 
 export interface ConfiguracionHotelItem {
