@@ -228,14 +228,42 @@ export async function ListarRolesPanel(): Promise<RolResponse[]> {
   return Array.isArray(r) ? r : [];
 }
 
+export interface DatosActualizarUsuarioPanel {
+  nombre?: string;
+  apellido?: string;
+  activo?: boolean;
+}
+
+export async function ActualizarEstadoUsuarioPanel(
+  UsuarioId: number,
+  Activo: boolean
+): Promise<UsuarioPanelResponse> {
+  return HacerRequest<UsuarioPanelResponse>(`/auth/usuarios/${UsuarioId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ activo: Activo }),
+  });
+}
+
+export async function ActualizarUsuarioPanel(
+  UsuarioId: number,
+  Datos: DatosActualizarUsuarioPanel
+): Promise<UsuarioPanelResponse> {
+  const Body: Record<string, unknown> = {};
+  if (Datos.nombre !== undefined) Body.nombre = Datos.nombre;
+  if (Datos.apellido !== undefined) Body.apellido = Datos.apellido;
+  if (Datos.activo !== undefined) Body.activo = Datos.activo;
+  return HacerRequest<UsuarioPanelResponse>(`/auth/usuarios/${UsuarioId}`, {
+    method: "PATCH",
+    body: JSON.stringify(Body),
+  });
+}
+
 export async function ActualizarRolesUsuarioPanel(
   UsuarioId: number,
   RolIds: number[]
 ): Promise<UsuarioPanelResponse> {
   const Base =
-    typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL
-      ? process.env.NEXT_PUBLIC_API_URL
-      : "https://backendhotelv2.fly.dev/api/v1";
+    (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) || "";
   const Token = ObtenerToken();
   const Res = await fetch(`${Base}/auth/usuarios/${UsuarioId}/roles`, {
     method: "PUT",

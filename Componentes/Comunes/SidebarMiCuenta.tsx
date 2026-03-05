@@ -35,28 +35,38 @@ const Enlaces = [
   },
 ] as const;
 
-export function SidebarMiCuenta() {
+export function SidebarMiCuenta({
+  Abierto = true,
+  onCerrar,
+}: {
+  Abierto?: boolean;
+  onCerrar?: () => void;
+} = {}) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-64 flex-col bg-[#1c1a16] text-white">
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#1c1a16] text-white shadow-xl transition-transform duration-200 ease-out md:relative md:z-auto md:translate-x-0 md:shadow-none ${Abierto ? "translate-x-0" : "-translate-x-full"}`}
+    >
       <Link
         href="/mi-cuenta"
         className="flex items-center gap-2 border-b border-[#3d3a35] px-6 py-5"
         aria-label="Royal Palm - Mi cuenta"
+        onClick={onCerrar}
       >
         <span className="text-[#b88f3a]">
           <LogoMarca ClaseAdicional="h-8 w-8" />
         </span>
         <span className="FuenteTitulo text-lg font-semibold text-white">Mi cuenta</span>
       </Link>
-      <nav className="flex flex-1 flex-col gap-1 p-4" aria-label="Área de cliente">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label="Área de cliente">
         {Enlaces.map(({ Href, Hijo, Icono }) => {
           const Activo = pathname === Href || (Href !== "/mi-cuenta/reservas" && pathname?.startsWith(Href));
           return (
             <Link
               key={Href}
               href={Href}
+              onClick={onCerrar}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] ${
                 Activo
                   ? "bg-[#b88f3a]/20 text-[#b88f3a]"
@@ -73,6 +83,7 @@ export function SidebarMiCuenta() {
         <Link
           href="/"
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          onClick={onCerrar}
         >
           <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />

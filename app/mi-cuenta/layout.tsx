@@ -17,6 +17,7 @@ export default function LayoutMiCuenta({
   const pathname = usePathname();
   const { Usuario, Cargando } = UseAuth();
   const [Comprobado, setComprobado] = useState(false);
+  const [SidebarAbierto, setSidebarAbierto] = useState(false);
 
   useEffect(() => {
     if (Cargando) return;
@@ -34,6 +35,10 @@ export default function LayoutMiCuenta({
     setComprobado(true);
   }, [Cargando, Usuario, router, pathname]);
 
+  useEffect(() => {
+    setSidebarAbierto(false);
+  }, [pathname]);
+
   if (!Comprobado || Cargando) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f2ec]">
@@ -47,10 +52,17 @@ export default function LayoutMiCuenta({
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f2ec]">
-      <SidebarMiCuenta />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <EncabezadoMiCuenta />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      <button
+        type="button"
+        aria-label="Cerrar menú"
+        className={`fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden ${SidebarAbierto ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+        onClick={() => setSidebarAbierto(false)}
+        tabIndex={SidebarAbierto ? 0 : -1}
+      />
+      <SidebarMiCuenta Abierto={SidebarAbierto} onCerrar={() => setSidebarAbierto(false)} />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <EncabezadoMiCuenta onAbrirMenu={() => setSidebarAbierto(true)} />
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

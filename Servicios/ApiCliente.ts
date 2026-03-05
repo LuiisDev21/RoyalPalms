@@ -9,7 +9,7 @@ function ObtenerBaseUrl(): string {
   if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  return "https://backendhotelv2.fly.dev/api/v1";
+  return "";
 }
 
 export function ObtenerToken(): string | null {

@@ -57,7 +57,7 @@ export async function ActualizarPerfilUsuario(
 
 export async function ComprobarPermisoUsuarios(): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "https://backendhotelv2.fly.dev/api/v1";
+  const base = process.env.NEXT_PUBLIC_API_URL ?? "";
   const token = (await import("./ApiCliente")).ObtenerToken();
   const res = await fetch(`${base}/auth/usuarios?Saltar=0&Limite=1`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -68,7 +68,7 @@ export async function ComprobarPermisoUsuarios(): Promise<boolean> {
 export async function CerrarSesion(): Promise<void> {
   try {
     if (typeof window !== "undefined") {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "https://backendhotelv2.fly.dev/api/v1";
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "";
       const refresh = ObtenerRefreshToken();
       if (refresh) {
         await fetch(`${base}/auth/logout`, {

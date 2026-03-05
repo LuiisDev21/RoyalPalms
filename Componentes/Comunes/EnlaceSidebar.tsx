@@ -13,12 +13,14 @@ export function EnlaceSidebar({
   Activo,
   Deshabilitado,
   Icono,
+  onNavigate,
 }: {
   Hijo: React.ReactNode;
   Href: string;
   Activo?: boolean;
   Deshabilitado?: boolean;
   Icono: React.ReactNode;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const EstaActivo = Activo ?? (pathname === Href || pathname.startsWith(Href + "/"));
@@ -41,6 +43,7 @@ export function EnlaceSidebar({
   return (
     <Link
       href={Href}
+      onClick={onNavigate}
       className={UnirClases(
         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         EstaActivo

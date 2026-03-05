@@ -3,7 +3,7 @@
 import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
 import { useRouter } from "next/navigation";
 
-export function EncabezadoMiCuenta() {
+export function EncabezadoMiCuenta({ onAbrirMenu }: { onAbrirMenu?: () => void } = {}) {
   const router = useRouter();
   const { Usuario, CerrarSesion } = UseAuth();
   const NombreCompleto = Usuario
@@ -25,15 +25,28 @@ export function EncabezadoMiCuenta() {
     .toUpperCase() || "U";
 
   return (
-    <header className="flex h-[72px] shrink-0 items-center justify-end gap-5 border-b border-[#e5e0d8] bg-white/50 backdrop-blur-md px-6 sm:px-8 sticky top-0 z-10">
-      <div className="flex items-center gap-4 sm:gap-6">
-        {/* Información del Usuario */}
-        <div className="flex items-center gap-3.5">
-          <div className="flex flex-col items-end sm:items-end justify-center">
-            <span className="text-[15px] leading-none font-semibold text-[#1c1a16] tracking-tight">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#e5e0d8] bg-white/50 px-4 backdrop-blur-md sm:h-[72px] sm:justify-end sm:px-6 sm:px-8">
+      {onAbrirMenu ? (
+        <button
+          type="button"
+          onClick={onAbrirMenu}
+          aria-label="Abrir menú de navegación"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-[#5b564d] hover:bg-[#f6f2ec] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] md:hidden"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      ) : (
+        <div className="w-10 md:hidden" />
+      )}
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-6">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3.5">
+          <div className="flex min-w-0 flex-col items-end justify-center">
+            <span className="truncate text-sm font-semibold text-[#1c1a16] sm:text-[15px] sm:leading-none sm:tracking-tight">
               {NombreCompleto}
             </span>
-            <span className="text-[13px] leading-tight text-[#8a8479] mt-1 pr-0.5">
+            <span className="mt-0.5 truncate text-xs text-[#8a8479] sm:mt-1 sm:text-[13px] sm:leading-tight sm:pr-0.5">
               {Email}
             </span>
           </div>
@@ -50,14 +63,14 @@ export function EncabezadoMiCuenta() {
         {/* Separador Visual */}
         <div className="hidden sm:block h-8 w-px bg-[#e5e0d8]"></div>
 
-        {/* Botón Cerrar Sesión Premium */}
         <button
           type="button"
           onClick={AlCerrarSesion}
-          className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-white px-4 py-2.5 text-[13px] font-medium text-[#1c1a16] shadow-sm ring-1 ring-[#e5e0d8] transition-all hover:bg-[#fcfaf7] hover:ring-[#d4b982]/60 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
+          className="group relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white px-3 py-2 text-xs font-medium text-[#1c1a16] shadow-sm ring-1 ring-[#e5e0d8] transition-all hover:bg-[#fcfaf7] hover:ring-[#d4b982]/60 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] sm:px-4 sm:py-2.5 sm:text-[13px]"
         >
-          <span className="relative z-10 flex items-center gap-2">
-            Cerrar sesión
+          <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+            <span className="hidden sm:inline">Cerrar sesión</span>
+            <span className="sm:hidden">Salir</span>
             <svg
               className="h-3.5 w-3.5 text-[#8a8479] transition-transform group-hover:translate-x-0.5 group-hover:text-[#b88f3a]"
               fill="none"
