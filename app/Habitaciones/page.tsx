@@ -8,12 +8,11 @@ import Link from "next/link";
 import Image from "next/image";
 
 const HABITACIONES_DATA = [
-  { id: 1, titulo: "Habitación Standard", precio: 80, maxHuespedes: 2, descripcion: "Ideal para viajeros de paso.", imagen: "https://images.unsplash.com/photo-1611892440504-42a792e24d32", equipamiento: ["Wifi", "Escritorio"] },
-  { id: 2, titulo: "Habitación Superior / Deluxe", precio: 150, maxHuespedes: 2, descripcion: "Mejor experiencia y comodidad.", imagen:"https://images.unsplash.com/photo-1582719478250-c89cae4df15b", equipamiento: ["Cama King", "Tina"] },
-  { id: 3, titulo: "Executive Suite", precio: 380, maxHuespedes: 3, descripcion: "Para el viajero de negocios.", imagen: "https://images.unsplash.com/photo-1566665797739-1674de7a421a", equipamiento: ["Nespresso", "Workstation"] },
-  { id: 4, titulo: "Family Suite", precio: 420, maxHuespedes: 6, descripcion: "Ideal para familias unidas.", imagen: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461", equipamiento: ["Cocineta", "Smart TV"] },
+  { id: 1, titulo: "Habitación Standard", precio: 80, maxHuespedes: 2, descripcion: "Ideal para viajeros de paso.", imagen: "/HabitacionStandar.jpg", equipamiento: ["Wifi", "Escritorio"] },
+  { id: 2, titulo: "Habitación Superior / Deluxe", precio: 150, maxHuespedes: 2, descripcion: "Mejor experiencia y comodidad.", imagen: "/Habitacion Superior_....jpg", equipamiento: ["Cama King", "Tina"] },
+  { id: 3, titulo: "Executive Suite", precio: 380, maxHuespedes: 3, descripcion: "Para el viajero de negocios.", imagen: "/Business_Suite.jpg", equipamiento: ["Nespresso", "Workstation"] },
+  { id: 4, titulo: "Family Suite", precio: 420, maxHuespedes: 6, descripcion: "Ideal para familias unidas.", imagen: "/Familysuite.jpg", equipamiento: ["Cocineta", "Smart TV"] },
 ];
-
 export default function CatalogoPage() {
   const [seleccionada, setSeleccionada] = useState(HABITACIONES_DATA[0]);
   const [huespedes, setHuespedes] = useState(1);
