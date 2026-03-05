@@ -11,7 +11,7 @@ import { ObtenerUsuarioAlmacenado } from "@/Servicios/ApiCliente";
 const EnlacesNavegacion = [
   { Texto: "Habitaciones", HRef: "/habitaciones" },
   { Texto: "Nosotros", HRef: "/nosotros" },
-  { Texto: "Contacto", HRef: "/#Contacto" },
+  { Texto: "Contacto", HRef: "/contacto" },
 ] as const;
 
 function UnirClases(...Clases: Array<string | undefined | false | null>) {

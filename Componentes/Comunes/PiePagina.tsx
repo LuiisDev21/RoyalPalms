@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { EnlaceScrollInicio } from "@/Componentes/Base/EnlaceScrollInicio";
 import { LogoMarca } from "@/Componentes/Comunes/LogoMarca";
 
 const EnlacesPie = [
   { Texto: "Habitaciones", HRef: "/habitaciones" },
   { Texto: "Nosotros", HRef: "/nosotros" },
-  { Texto: "Contacto", HRef: "/#Contacto" },
+  { Texto: "Contacto", HRef: "/contacto" },
   { Texto: "Política de privacidad", HRef: "/politica-privacidad" },
 ] as const;
 
@@ -30,25 +29,15 @@ export function PiePagina() {
             className="flex flex-wrap justify-center gap-8 md:gap-10"
             aria-label="Enlaces del sitio"
           >
-            {EnlacesPie.map((Enlace) =>
-              Enlace.HRef.startsWith("/#") ? (
-                <Link
-                  key={Enlace.Texto}
-                  href={Enlace.HRef}
-                  className="text-sm text-white/80 transition-colors hover:text-white"
-                >
-                  {Enlace.Texto}
-                </Link>
-              ) : (
-                <EnlaceScrollInicio
-                  key={Enlace.Texto}
-                  href={Enlace.HRef}
-                  className="text-sm text-white/80 transition-colors hover:text-white"
-                >
-                  {Enlace.Texto}
-                </EnlaceScrollInicio>
-              )
-            )}
+            {EnlacesPie.map((Enlace) => (
+              <EnlaceScrollInicio
+                key={Enlace.Texto}
+                href={Enlace.HRef}
+                className="text-sm text-white/80 transition-colors hover:text-white"
+              >
+                {Enlace.Texto}
+              </EnlaceScrollInicio>
+            ))}
           </nav>
         </div>
 
