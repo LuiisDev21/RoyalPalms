@@ -4,6 +4,7 @@ import { IconoSpinner } from "@/Componentes/Base/IconoSpinner";
 import type { HabitacionResponse } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
 import type { PoliticaCancelacionResponse } from "@/Servicios/PanelApiServicio";
 import type { TipoHabitacionResponse } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
+import Image from "next/image";
 import { useState, useRef } from "react";
 
 export interface ValoresFormularioHabitacion {
@@ -248,11 +249,13 @@ export function FormularioHabitacionModal({
                   className="mt-1 block w-full text-sm text-[#5b564d] file:mr-2 file:rounded-lg file:border-0 file:bg-[#1c1a16] file:px-3 file:py-1.5 file:text-sm file:text-white file:hover:bg-[#2d2a26]"
                 />
                 {VistaPrevia && (
-                  <div className="mt-2">
-                    <img
+                  <div className="relative mt-2 h-40 w-full overflow-hidden rounded-lg border border-[#e5e0d8]">
+                    <Image
                       src={VistaPrevia}
                       alt="Vista previa"
-                      className="max-h-40 rounded-lg border border-[#e5e0d8] object-cover"
+                      fill
+                      className="object-cover"
+                      unoptimized
                     />
                   </div>
                 )}

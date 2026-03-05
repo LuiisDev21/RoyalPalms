@@ -17,18 +17,20 @@ import { ClavesQueryPanel } from "@/Utilidades/QueryKeysPanel";
 import { Notificaciones } from "@/Utilidades/Notificaciones";
 import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
 
-export default function PaginaReportesAdmin() {
-  const [FechaInicio, setFechaInicio] = useState("");
-  const [FechaFin, setFechaFin] = useState("");
-  const [OrdenClientes, setOrdenClientes] = useState<"gastado" | "reservas">("gastado");
+function FechaInicioPorDefecto(): string {
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  return start.toISOString().slice(0, 10);
+}
 
-  useEffect(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 30);
-    if (!FechaInicio) setFechaInicio(start.toISOString().slice(0, 10));
-    if (!FechaFin) setFechaFin(end.toISOString().slice(0, 10));
-  }, []);
+function FechaFinPorDefecto(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function PaginaReportesAdmin() {
+  const [FechaInicio, setFechaInicio] = useState(FechaInicioPorDefecto);
+  const [FechaFin, setFechaFin] = useState(FechaFinPorDefecto);
+  const [OrdenClientes, setOrdenClientes] = useState<"gastado" | "reservas">("gastado");
 
   const {
     data,

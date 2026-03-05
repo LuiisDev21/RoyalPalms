@@ -2,6 +2,7 @@
 
 import { IconoSpinner } from "@/Componentes/Base/IconoSpinner";
 import type { HabitacionResponse } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
+import Image from "next/image";
 
 function EtiquetaEstado({ Estado }: { Estado: string }) {
   const EsDisponible = Estado === "disponible";
@@ -48,10 +49,12 @@ export function TarjetaHabitacionAdmin({
       </div>
       {Habitacion.imagen_url ? (
         <div className="relative h-48 w-full shrink-0">
-          <img
+          <Image
             src={Habitacion.imagen_url}
             alt={`Habitación ${Habitacion.numero}`}
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 400px"
           />
         </div>
       ) : (
