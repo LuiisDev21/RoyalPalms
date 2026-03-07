@@ -1,119 +1,106 @@
-import React from "react";
+import type { Metadata } from "next";
 import { BarraNavegacion } from "@/Componentes/Comunes/BarraNavegacion";
+import { PiePagina } from "@/Componentes/Comunes/PiePagina";
 
-export const metadata = {
-  title: "Política de Privacidad - RoyalPalms",
+export const metadata: Metadata = {
+  title: "Política de Privacidad | Royal Palm",
+  description:
+    "Política de privacidad y protección de datos de Royal Palm.",
 };
 
-export default function PoliticaPrivacidadPage() {
+const ClaseSeccion =
+  "mx-auto max-w-3xl px-6 py-16 md:py-20 first:pt-16 md:first:pt-20";
+
+export default function PaginaPoliticaPrivacidad() {
   return (
-    <main className="min-h-screen bg-white text-[#1c1a16]">
-  {/* margen superior dorado para que la barra fija sea visible */}
-  <div className="h-20 sm:h-24 bg-[#bf9a4f]" aria-hidden="true" />
-      <BarraNavegacion ForzarTemaClaro />
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-2xl font-semibold mb-4">Política de Privacidad</h1>
+    <main className="min-h-screen">
+      <BarraNavegacion />
+      <header className="bg-[#1c1a16] px-6 py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs tracking-[0.35em] text-white/70">
+            INFORMACIÓN LEGAL
+          </p>
+          <h1 className="FuenteTitulo mt-4 text-4xl leading-none text-white md:text-5xl">
+            Política de Privacidad
+          </h1>
+          <p className="mt-4 text-sm text-white/70">
+            Última actualización: {new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}
+          </p>
+        </div>
+      </header>
 
-        <p className="mb-4">
-          En RoyalPalms respetamos su privacidad y nos comprometemos a proteger los
-          datos personales que usted nos confía. Esta política de privacidad explica qué
-          información recopilamos, con qué finalidad, cómo la usamos y qué derechos tiene
-          como titular de los datos.
-        </p>
+      <article className="bg-[#ffffff]">
+        <section className={ClaseSeccion}>
+          <h2 className="FuenteTitulo text-2xl text-[#1c1a16] md:text-3xl">
+            Introducción
+          </h2>
+          <p className="mt-6 text-sm leading-relaxed text-[#5b564d] md:text-base">
+            En Royal Palm nos comprometemos a proteger la privacidad de nuestros
+            huéspedes y visitantes. Esta política describe cómo recopilamos,
+            utilizamos y protegemos la información personal que nos proporcionas
+            al utilizar nuestros servicios o visitar nuestro sitio web.
+          </p>
+        </section>
 
-        <h2 className="mt-6 font-medium">1. Responsable del tratamiento</h2>
-        <p className="mb-4">
-          El responsable del tratamiento de sus datos es RoyalPalms (en adelante, "el
-          Hotel"). Si tiene preguntas sobre el tratamiento de sus datos, puede
-          contactarnos a través de los canales oficiales disponibles en nuestra web.
-        </p>
+        <section className={`${ClaseSeccion} bg-[#f6f2ec]`}>
+          <h2 className="FuenteTitulo text-2xl text-[#1c1a16] md:text-3xl">
+            Información que recopilamos
+          </h2>
+          <p className="mt-6 text-sm leading-relaxed text-[#5b564d] md:text-base">
+            Podemos recopilar información personal como nombre, correo
+            electrónico, número de teléfono, datos de reserva y preferencias de
+            estancia cuando realizas una reserva, te suscribes a nuestra
+            newsletter o nos contactas a través de nuestro sitio web.
+          </p>
+        </section>
 
-        <h2 className="mt-6 font-medium">2. Datos que recopilamos</h2>
-        <ul className="list-disc list-inside mb-4">
-          <li>Datos de contacto: nombre, correo electrónico, teléfono.</li>
-          <li>Datos de reserva: fechas, tipo de habitación, preferencias.</li>
-          <li>
-            Datos de facturación: dirección y, cuando proceda, información necesaria
-            para emitir facturas.
-          </li>
-          <li>Información de uso: datos de navegación, cookies y preferencias en el sitio web.</li>
-        </ul>
+        <section className={ClaseSeccion}>
+          <h2 className="FuenteTitulo text-2xl text-[#1c1a16] md:text-3xl">
+            Uso de la información
+          </h2>
+          <p className="mt-6 text-sm leading-relaxed text-[#5b564d] md:text-base">
+            Utilizamos la información recopilada para gestionar reservas,
+            mejorar nuestros servicios, enviar comunicaciones relacionadas con tu
+            estancia y cumplir con obligaciones legales. No vendemos ni
+            compartimos tu información personal con terceros con fines
+            comerciales.
+          </p>
+        </section>
 
-        <h2 className="mt-6 font-medium">3. Finalidades del tratamiento</h2>
-        <p className="mb-4">
-          Tratamos sus datos personales para las siguientes finalidades: gestionar sus
-          reservas y estancias, emitir facturas, comunicarnos con usted (confirmaciones,
-          cambios o comunicaciones comerciales cuando haya dado su consentimiento),
-          mejorar nuestros servicios y enviarle información relevante sobre promociones
-          y novedades si lo autoriza.
-        </p>
+        <section className={`${ClaseSeccion} bg-[#f6f2ec]`}>
+          <h2 className="FuenteTitulo text-2xl text-[#1c1a16] md:text-3xl">
+            Cookies y tecnologías similares
+          </h2>
+          <p className="mt-6 text-sm leading-relaxed text-[#5b564d] md:text-base">
+            Nuestro sitio web puede utilizar cookies y tecnologías similares
+            para mejorar tu experiencia de navegación. Puedes configurar tu
+            navegador para rechazar cookies, aunque esto puede afectar algunas
+            funcionalidades del sitio.
+          </p>
+        </section>
 
-        <h2 className="mt-6 font-medium">4. Legitimación</h2>
-        <p className="mb-4">
-          El tratamiento se basa en la ejecución del contrato de hospedaje y, cuando
-          proceda, en el consentimiento del interesado para el envío de comunicaciones
-          comerciales. También podremos tratar datos para el cumplimiento de obligaciones
-          legales (por ejemplo, fiscalidad y seguridad).
-        </p>
+        <section className={ClaseSeccion}>
+          <h2 className="FuenteTitulo text-2xl text-[#1c1a16] md:text-3xl">
+            Tus derechos
+          </h2>
+          <p className="mt-6 text-sm leading-relaxed text-[#5b564d] md:text-base">
+            Tienes derecho a acceder, rectificar, suprimir o limitar el
+            tratamiento de tus datos personales. Para ejercer estos derechos o
+            realizar cualquier consulta sobre nuestra política de privacidad,
+            puedes contactarnos a través de los canales indicados en nuestra
+            sección de contacto.
+          </p>
+        </section>
 
-        <h2 className="mt-6 font-medium">5. Conservación de los datos</h2>
-        <p className="mb-4">
-          Conservaremos sus datos solamente durante el tiempo necesario para cumplir las
-          finalidades para las que se recabaron y para cumplir con las obligaciones
-          legales aplicables. Los plazos pueden variar según la naturaleza del dato y la
-          finalidad (por ejemplo, obligaciones fiscales o de comprobación contable).
-        </p>
+        <section className={`${ClaseSeccion} border-t border-[#6a645a]/20`}>
+          <p className="text-sm leading-relaxed text-[#5b564d] md:text-base">
+            Si tienes preguntas sobre esta política de privacidad, no dudes en
+            contactarnos.
+          </p>
+        </section>
+      </article>
 
-        <h2 className="mt-6 font-medium">6. Cesiones y transferencias</h2>
-        <p className="mb-4">
-          No venderemos ni cederemos sus datos a terceros para fines comerciales sin su
-          consentimiento. Podemos compartir datos con proveedores y prestadores de
-          servicios que ayudan a operar el hotel (sistemas de reservas, pasarelas de
-          pago, servicios de limpieza, etc.) bajo garantías de confidencialidad y
-          seguridad. Si realizamos transferencias internacionales de datos, se hará
-          conforme a la normativa aplicable y con las salvaguardias necesarias.
-        </p>
-
-        <h2 className="mt-6 font-medium">7. Cookies y tecnologías similares</h2>
-        <p className="mb-4">
-          Utilizamos cookies propias y de terceros para asegurar el correcto funcionamiento
-          del sitio, analizar su uso y ofrecerle contenidos personalizados. Puede gestionar
-          o rechazar las cookies mediante la configuración de su navegador o la herramienta
-          de consentimiento disponible en la web.
-        </p>
-
-        <h2 className="mt-6 font-medium">8. Medidas de seguridad</h2>
-        <p className="mb-4">
-          Implementamos medidas técnicas y organizativas razonables para proteger sus
-          datos contra pérdidas, accesos no autorizados o divulgaciones. Sin embargo,
-          ningún sistema es 100% seguro; le recomendamos extremar precauciones al
-          compartir información sensible.
-        </p>
-
-        <h2 className="mt-6 font-medium">9. Derechos del interesado</h2>
-        <p className="mb-4">
-          Usted tiene derecho a acceder, rectificar y suprimir los datos, así como a
-          limitar u oponerse a su tratamiento, y a la portabilidad de los datos cuando
-          proceda. Para ejercer estos derechos puede contactarnos y facilitarnos una
-          copia de su documento de identidad u otro medio que acredite su identidad.
-        </p>
-
-        <h2 className="mt-6 font-medium">10. Conservación y cambios en la política</h2>
-        <p className="mb-4">
-          Podemos actualizar esta política de privacidad para reflejar cambios legales,
-          regulatorios o de nuestros servicios. Publicaremos la versión actualizada en
-          esta misma página con la fecha de última revisión.
-        </p>
-
-        <h2 className="mt-6 font-medium">11. Contacto</h2>
-        <p className="mb-4">
-          Para cualquier consulta sobre esta política o sobre sus datos personales,
-          puede ponerse en contacto con nosotros en: <strong>reservas@royalpalms.example</strong>
-          o llamando al número de atención al cliente que figura en nuestra web.
-        </p>
-
-        <p className="mt-6 italic">Última actualización: 27 de febrero de 2026</p>
-      </section>
+      <PiePagina />
     </main>
   );
 }

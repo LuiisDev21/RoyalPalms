@@ -1,6 +1,4 @@
-# RoyalPalms
-
-Proyecto en **Next.js** para comenzar desde una base limpia.
+# RoyalPalms Frontend   
 
 ## Comandos
 

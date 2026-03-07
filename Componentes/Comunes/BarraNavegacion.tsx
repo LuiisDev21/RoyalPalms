@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { EnlaceScrollInicio } from "@/Componentes/Base/EnlaceScrollInicio";
 import { LogoMarca } from "@/Componentes/Comunes/LogoMarca";
+import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
+import { EsHuesped, ObtenerRolesUsuario } from "@/Tipos/Auth";
+import { ObtenerUsuarioAlmacenado } from "@/Servicios/ApiCliente";
 
 const EnlacesNavegacion = [
-  { Texto: "Inicio", HRef: "/" },
-{ Texto: "Habitaciones", HRef: "/Habitaciones" },
-  { Texto: "Nosotros", HRef: "/#Nosotros" },
-  { Texto: "Contacto", HRef: "/#Contacto" },
+  { Texto: "Habitaciones", HRef: "/habitaciones" },
+  { Texto: "Nosotros", HRef: "/nosotros" },
+  { Texto: "Contacto", HRef: "/contacto" },
 ] as const;
 
 function UnirClases(...Clases: Array<string | undefined | false | null>) {
@@ -55,10 +58,23 @@ function IconoCerrar({ ClaseAdicional }: { ClaseAdicional?: string }) {
   );
 }
 
-export function BarraNavegacion({ ForzarTemaClaro }: { ForzarTemaClaro?: boolean } = {}) {
+export function BarraNavegacion() {
+  const { Usuario, Cargando } = UseAuth();
+  const [Montado, PonerMontado] = useState(false);
   const [EstaFlotante, PonerEstaFlotante] = useState(false);
   const [EsTemaClaro, PonerEsTemaClaro] = useState(false);
   const [EstaMenuMovilAbierto, PonerEstaMenuMovilAbierto] = useState(false);
+
+  useEffect(() => {
+    PonerMontado(true);
+  }, []);
+
+  const UsuarioActual = Montado ? (Usuario ?? ObtenerUsuarioAlmacenado()) : null;
+  const Roles = ObtenerRolesUsuario(UsuarioActual);
+  const EsSoloHuesped = EsHuesped(Roles);
+  const MostrarMiCuenta = Montado && !!UsuarioActual && EsSoloHuesped;
+  const MostrarPanel = Montado && !!UsuarioActual && !EsSoloHuesped;
+  const MostrarIniciarSesion = Montado && !UsuarioActual && !Cargando;
 
   useEffect(() => {
     function AlHacerScroll() {
@@ -67,11 +83,7 @@ export function BarraNavegacion({ ForzarTemaClaro }: { ForzarTemaClaro?: boolean
       const UmbralTemaClaro = Math.max(UmbralFlotante, window.innerHeight - 120);
 
       PonerEstaFlotante(PosicionVertical > UmbralFlotante);
-      if (typeof ForzarTemaClaro === "boolean") {
-        PonerEsTemaClaro(ForzarTemaClaro);
-      } else {
-        PonerEsTemaClaro(PosicionVertical > UmbralTemaClaro);
-      }
+      PonerEsTemaClaro(PosicionVertical > UmbralTemaClaro);
     }
 
     AlHacerScroll();
@@ -187,7 +199,7 @@ export function BarraNavegacion({ ForzarTemaClaro }: { ForzarTemaClaro?: boolean
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 sm:px-6">
           <div className="flex items-center gap-10">
-            <Link
+            <EnlaceScrollInicio
               href="/"
               className={UnirClases(
                 "FuenteTitulo text-base tracking-wide transition-colors md:text-lg",
@@ -198,33 +210,60 @@ export function BarraNavegacion({ ForzarTemaClaro }: { ForzarTemaClaro?: boolean
                 <LogoMarca ClaseAdicional="h-6 w-6 md:h-7 md:w-7" />
                 <span>Royal Palm</span>
               </span>
-            </Link>
+            </EnlaceScrollInicio>
 
             <nav className="hidden items-center gap-8 md:flex">
               {EnlacesNavegacion.map((Enlace) => (
-                <Link
+                <EnlaceScrollInicio
                   key={Enlace.Texto}
                   href={Enlace.HRef}
                   className={UnirClases("text-sm transition-colors", ClaseTextoEnlace)}
                 >
                   {Enlace.Texto}
-                </Link>
+                </EnlaceScrollInicio>
               ))}
             </nav>
           </div>
 
           <div className="hidden items-center gap-6 md:flex">
-            <Link
-              href="/#IniciarSesion"
-              className={UnirClases(
-                "hidden text-sm transition-colors sm:inline",
-                ClaseTextoAccion,
-              )}
-            >
-              Iniciar Sesión
-            </Link>
+            {MostrarIniciarSesion && (
+              <EnlaceScrollInicio
+                href="/login"
+                className={UnirClases(
+                  "hidden text-sm transition-colors sm:inline",
+                  ClaseTextoAccion,
+                )}
+              >
+                Iniciar Sesión
+              </EnlaceScrollInicio>
+            )}
+            {MostrarMiCuenta && (
+              <Link
+                href="/mi-cuenta"
+                className={UnirClases(
+                  "hidden text-sm transition-colors sm:inline",
+                  ClaseTextoAccion,
+                )}
+              >
+                Mi cuenta
+              </Link>
+            )}
+            {MostrarPanel && (
+              <Link
+                href="/admin"
+                className={UnirClases(
+                  "hidden text-sm transition-colors sm:inline",
+                  ClaseTextoAccion,
+                )}
+              >
+                Panel
+              </Link>
+            )}
 
-            <Link href="/#Reservar" className={ClaseBotonReservar}>
+            <Link
+              href={UsuarioActual ? "/mi-cuenta/reservas/nueva" : "/login"}
+              className={ClaseBotonReservar}
+            >
               Reservar Ahora
             </Link>
           </div>
@@ -245,27 +284,47 @@ export function BarraNavegacion({ ForzarTemaClaro }: { ForzarTemaClaro?: boolean
         <div className={ClasePanelMovil} role="dialog" aria-label="Menú">
           <nav className="space-y-1">
             {EnlacesNavegacion.map((Enlace) => (
-              <Link
+              <EnlaceScrollInicio
                 key={Enlace.Texto}
                 href={Enlace.HRef}
                 className={ClaseEnlaceMovil}
                 onClick={CerrarMenuMovil}
               >
                 {Enlace.Texto}
-              </Link>
+              </EnlaceScrollInicio>
             ))}
           </nav>
 
           <div className="mt-3 border-t border-white/10 pt-3">
+            {MostrarIniciarSesion && (
+              <EnlaceScrollInicio
+                href="/login"
+                className={ClaseAccionMovil}
+                onClick={CerrarMenuMovil}
+              >
+                Iniciar Sesión
+              </EnlaceScrollInicio>
+            )}
+            {MostrarMiCuenta && (
+              <Link
+                href="/mi-cuenta"
+                className={ClaseAccionMovil}
+                onClick={CerrarMenuMovil}
+              >
+                Mi cuenta
+              </Link>
+            )}
+            {MostrarPanel && (
+              <Link
+                href="/admin"
+                className={ClaseAccionMovil}
+                onClick={CerrarMenuMovil}
+              >
+                Panel
+              </Link>
+            )}
             <Link
-              href="/#IniciarSesion"
-              className={ClaseAccionMovil}
-              onClick={CerrarMenuMovil}
-            >
-              Iniciar Sesión
-            </Link>
-            <Link
-              href="/#Reservar"
+              href={UsuarioActual ? "/mi-cuenta/reservas/nueva" : "/login"}
               className={ClaseAccionMovil}
               onClick={CerrarMenuMovil}
             >

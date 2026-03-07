@@ -65,7 +65,7 @@ export function SeccionHistoria() {
 
           <div className="mt-10">
             <BotonEnlace
-              HRef="/#ConocerMas"
+              HRef="/nosotros"
               Texto="Conocer Más"
               Variante="Dorado"
               Tamano="Mediano"

@@ -1,54 +1,68 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
+"use client";
 
-const navLinks = [
+import { EncabezadoPanel } from "@/Componentes/Comunes/EncabezadoPanel";
+import { SidebarPanel } from "@/Componentes/Comunes/SidebarPanel";
+import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
+import { EsHuesped, ObtenerRolesUsuario } from "@/Tipos/Auth";
+import { ObtenerUsuarioAlmacenado } from "@/Servicios/ApiCliente";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
-  { href: "/admin/habitaciones", label: "Habitaciones" },
-  { href: "/admin/reservas", label: "Reservas" },
-  { href: "/admin/pagos", label: "Pagos" },
-  { href: "/admin/usuarios", label: "Usuarios" },
-  { href: "/admin/configuraciones", label: "Configuraciones" },
-  { href: "/admin/reportes", label: "Reportes" },
-];
+export default function LayoutAdmin({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { Usuario, Cargando } = UseAuth();
+  const [Comprobado, setComprobado] = useState(false);
+  const [SidebarAbierto, setSidebarAbierto] = useState(false);
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    if (Cargando) return;
+    const u = Usuario ?? ObtenerUsuarioAlmacenado();
+    if (!u) {
+      router.replace("/login");
+      return;
+    }
+    const roles = ObtenerRolesUsuario(u);
+    if (EsHuesped(roles)) {
+      router.replace("/");
+      return;
+    }
+    setComprobado(true);
+  }, [Cargando, Usuario, router, pathname]);
+
+  useEffect(() => {
+    setSidebarAbierto(false);
+  }, [pathname]);
+
+  if (!Comprobado || Cargando) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f6f2ec]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#b88f3a] border-t-transparent" />
+          <p className="text-sm text-[#5b564d]">Verificando acceso…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F6F4EF] flex">
-      {/* Sidebar */}
-      <aside className="w-72 bg-black/70 backdrop-blur-xl text-white p-6 border-r border-[#B8964A]/20 shadow-xl">
-        <div className="mb-10">
-          <p className="text-xs tracking-[0.25em] text-white/60">ROYAL PALM</p>
-          <h2 className="text-2xl font-semibold mt-2 leading-tight">
-            Panel Administrador
-          </h2>
-          <div className="mt-4 h-[2px] w-14 bg-[#B8964A] rounded-full" />
-        </div>
-
-        <nav className="space-y-2">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="block rounded-xl px-4 py-2 text-white/85 hover:text-white hover:bg-white/5 transition"
-            >
-              <span className="inline-block mr-2 text-[#B8964A]">•</span>
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="mt-10 pt-6 border-t border-white/10">
-          <p className="text-xs text-white/60 tracking-wider">Hotel</p>
-          <p className="text-sm text-white/70 mt-1">
-           Royal • Palm
-          </p>
-        </div>
-      </aside>
-
-      {/* Content */}
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto">{children}</div>
-      </main>
+    <div className="flex h-screen overflow-hidden bg-[#f6f2ec]">
+      <button
+        type="button"
+        aria-label="Cerrar menú"
+        className={`fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden ${SidebarAbierto ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+        onClick={() => setSidebarAbierto(false)}
+        tabIndex={SidebarAbierto ? 0 : -1}
+      />
+      <SidebarPanel Abierto={SidebarAbierto} onCerrar={() => setSidebarAbierto(false)} />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <EncabezadoPanel onAbrirMenu={() => setSidebarAbierto(true)} />
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+      </div>
     </div>
   );
 }

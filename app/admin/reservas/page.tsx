@@ -1,222 +1,379 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { ModalConfirmacion } from "@/Componentes/Base/ModalConfirmacion";
+import {
+  FormatearMontoConMoneda,
+  ObtenerPrecioTotalNumerico,
+} from "@/Utilidades/FormatearMoneda";
+import {
+  ListarTodasReservasPanel,
+  ObtenerReservaPanel,
+  ActualizarReservaPanel,
+  CancelarReservaPanel,
+  type ReservaResponse,
+} from "@/Servicios/PanelApiServicio";
+import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
+import { ClavesQueryPanel } from "@/Utilidades/QueryKeysPanel";
+import { Notificaciones } from "@/Utilidades/Notificaciones";
+import { ObtenerTituloYDescripcionError } from "@/Utilidades/MensajeDeError";
+import {
+  PuedeCancelarReserva,
+  PuedeActualizarEstadoReserva,
+} from "@/Utilidades/PermisosPanel";
 
-type EstadoReserva = "pendiente" | "confirmada" | "cancelada" | string;
+const ESTADOS_RESERVA = ["pendiente", "confirmada", "cancelada", "completada", "no_show"] as const;
 
-type Reserva = {
-  id: number;
-  codigo?: string;
-  usuario_nombre?: string;
-  usuario_email?: string;
-  habitacion_numero?: string;
-  habitacion_id?: number;
-  fecha_inicio?: string;
-  fecha_fin?: string;
-  huespedes?: number;
-  precio_total?: number;
-  estado?: EstadoReserva;
-};
-
-function money(n?: number) {
-  const v = typeof n === "number" ? n : 0;
-  return `$${v.toFixed(2)}`;
+function BadgeEstadoReserva(Estado: string) {
+  const clases: Record<string, string> = {
+    pendiente: "bg-amber-100 text-amber-800",
+    confirmada: "bg-emerald-100 text-emerald-800",
+    cancelada: "bg-red-100 text-red-800",
+    completada: "bg-sky-100 text-sky-800",
+    no_show: "bg-amber-100 text-amber-800",
+  };
+  return (
+    <span
+      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${clases[Estado] ?? "bg-gray-100 text-gray-800"}`}
+    >
+      {Estado}
+    </span>
+  );
 }
 
-export default function ReservasPage() {
-  const [data, setData] = useState<Reserva[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function PaginaReservasAdmin() {
+  const { Roles } = UseAuth();
+  const queryClient = useQueryClient();
+  const PuedeCancelar = PuedeCancelarReserva(Roles);
+  const PuedeActualizarEstado = PuedeActualizarEstadoReserva(Roles);
+  const [ModalReserva, setModalReserva] = useState<ReservaResponse | null>(null);
+  const [TextoBusqueda, setTextoBusqueda] = useState("");
+  const [FiltroEstado, setFiltroEstado] = useState<string>("");
+  const [ConfirmacionReserva, setConfirmacionReserva] = useState<
+    { accion: "checkout"; id: number } | { accion: "no_show"; id: number } | { accion: "cancelar"; id: number } | null
+  >(null);
 
-  const [q, setQ] = useState("");
-  const [estado, setEstado] = useState<"todas" | string>("todas");
+  const { data: Reservas = [], isLoading: Cargando, isError, error } = useQuery({
+    queryKey: ClavesQueryPanel.Reservas,
+    queryFn: () => ListarTodasReservasPanel(),
+  });
 
-  async function loadReservas() {
+  const MutacionActualizar = useMutation({
+    mutationFn: ({ Id, estado }: { Id: number; estado: string }) =>
+      ActualizarReservaPanel(Id, { estado }),
+    onSuccess: (_, { estado }) => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+      setModalReserva(null);
+      Notificaciones.Exito(estado === "completada" ? "Reserva marcada como completada" : "Reserva marcada como no-show");
+    },
+    onError: (e) => {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al actualizar");
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
+
+  const MutacionCancelar = useMutation({
+    mutationFn: CancelarReservaPanel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Pagos });
+      setModalReserva(null);
+      Notificaciones.Exito("Reserva cancelada correctamente");
+    },
+    onError: (e) => {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cancelar");
+      Notificaciones.Error(Titulo, Descripcion);
+    },
+  });
+
+  useEffect(() => {
+    if (!isError || !error) return;
+    const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(error, "Error al cargar reservas");
+    Notificaciones.Error(Titulo, Descripcion);
+  }, [isError, error]);
+
+  const ReservasFiltradas = Reservas.filter((r) => {
+    const Texto = TextoBusqueda.trim().toLowerCase();
+    if (Texto) {
+      const CoincideId = r.id.toString().includes(Texto);
+      const CoincideCodigo = (r.codigo_reserva ?? "").toLowerCase().includes(Texto);
+      const CoincideUsuario = (r.nombre_usuario ?? "").toLowerCase().includes(Texto) || r.usuario_id.toString().includes(Texto);
+      const CoincideHabitacion = (r.numero_habitacion ?? "").toLowerCase().includes(Texto) || r.habitacion_id.toString().includes(Texto);
+      const CoincideFechas = r.fecha_entrada.includes(Texto) || r.fecha_salida.includes(Texto);
+      if (!CoincideId && !CoincideCodigo && !CoincideUsuario && !CoincideHabitacion && !CoincideFechas) return false;
+    }
+    if (FiltroEstado && r.estado !== FiltroEstado) return false;
+    return true;
+  });
+
+  async function VerDetalle(Id: number) {
     try {
-      setLoading(true);
-      setError(null);
-
-      const base = process.env.NEXT_PUBLIC_API_URL;
-      if (!base) throw new Error("Falta NEXT_PUBLIC_API_URL en tu .env");
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error(
-          "No hay token. Inicia sesión en el admin para ver reservas reales."
-        );
-      }
-
-      // Intentamos /todas primero (admin). Si da 403, caemos a /reservas (mis reservas).
-      const headers: HeadersInit = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      let res = await fetch(`${base}/reservas/todas`, {
-        method: "GET",
-        headers,
-        cache: "no-store",
-      });
-
-      if (res.status === 403) {
-        res = await fetch(`${base}/reservas`, {
-          method: "GET",
-          headers,
-          cache: "no-store",
-        });
-      }
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`Error cargando reservas: HTTP ${res.status} ${txt}`);
-      }
-
-      const json = await res.json();
-      setData(Array.isArray(json) ? json : []);
-    } catch (e: any) {
-      setError(e?.message ?? "Error cargando reservas");
-      setData([]);
-    } finally {
-      setLoading(false);
+      const r = await ObtenerReservaPanel(Id);
+      setModalReserva(r);
+    } catch (e) {
+      const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cargar reserva");
+      Notificaciones.Error(Titulo, Descripcion);
     }
   }
 
-  useEffect(() => {
-    loadReservas();
-  }, []);
+  function SolicitarCheckout(Id: number) {
+    setConfirmacionReserva({ accion: "checkout", id: Id });
+  }
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return data.filter((r) => {
-      const codigo = (r.codigo ?? "").toLowerCase();
-      const usuario = (r.usuario_nombre ?? r.usuario_email ?? "").toLowerCase();
-      const hab = (r.habitacion_numero ?? String(r.habitacion_id ?? "")).toLowerCase();
-      const est = (r.estado ?? "").toLowerCase();
+  function SolicitarNoShow(Id: number) {
+    setConfirmacionReserva({ accion: "no_show", id: Id });
+  }
 
-      const matchQ = s === "" || codigo.includes(s) || usuario.includes(s) || hab.includes(s);
-      const matchEstado = estado === "todas" ? true : est === estado.toLowerCase();
+  function SolicitarCancelar(Id: number) {
+    setConfirmacionReserva({ accion: "cancelar", id: Id });
+  }
 
-      return matchQ && matchEstado;
-    });
-  }, [data, q, estado]);
+  function ConfirmarAccionReserva() {
+    if (!ConfirmacionReserva) return;
+    if (ConfirmacionReserva.accion === "cancelar") {
+      MutacionCancelar.mutate(ConfirmacionReserva.id);
+    } else {
+      MutacionActualizar.mutate({
+        Id: ConfirmacionReserva.id,
+        estado: ConfirmacionReserva.accion === "checkout" ? "completada" : "no_show",
+      });
+    }
+    setConfirmacionReserva(null);
+  }
+
+  const ConfigConfirmacion =
+    ConfirmacionReserva?.accion === "checkout"
+      ? { Titulo: "Marcar como completada", Mensaje: "¿Marcar esta reserva como completada (check-out)?", TextoConfirmar: "Marcar completada", Variante: "primario" as const }
+      : ConfirmacionReserva?.accion === "no_show"
+        ? { Titulo: "Marcar como no-show", Mensaje: "¿Marcar esta reserva como no-show?", TextoConfirmar: "Marcar no-show", Variante: "primario" as const }
+        : ConfirmacionReserva?.accion === "cancelar"
+          ? { Titulo: "Cancelar reserva", Mensaje: "¿Estás seguro de cancelar esta reserva?", TextoConfirmar: "Cancelar reserva", Variante: "peligro" as const }
+          : null;
+
+  const Hoy = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="space-y-6">
-      {/* Título */}
-      <div className="bg-white border border-gray-200 shadow-sm p-6">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Todas las Reservas</h1>
-
-          <button
-            onClick={loadReservas}
-            className="h-10 px-4 bg-gray-900 text-white text-sm font-semibold hover:bg-black transition"
+    <div>
+      <h1 className="FuenteTitulo text-2xl font-semibold text-[#1c1a16] md:text-3xl">
+        Todas las Reservas
+      </h1>
+      {!Cargando && Reservas.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-[#e5e0d8] bg-[#f6f2ec] p-4">
+          <label htmlFor="reservas-busqueda" className="sr-only">
+            Buscar por código, usuario, habitación o fechas
+          </label>
+          <input
+            id="reservas-busqueda"
+            type="search"
+            placeholder="Buscar por código, usuario, habitación, fechas…"
+            value={TextoBusqueda}
+            onChange={(e) => setTextoBusqueda(e.target.value)}
+            className="min-w-[200px] flex-1 rounded-lg border border-[#6a645a]/40 bg-white px-3 py-2 text-sm text-[#1c1a16] placeholder:text-[#6a645a]/60 focus:border-[#b88f3a] focus:outline-none focus:ring-1 focus:ring-[#b88f3a]"
+          />
+          <select
+            aria-label="Filtrar por estado"
+            value={FiltroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            className="rounded-lg border border-[#6a645a]/40 bg-white px-3 py-2 text-sm text-[#1c1a16] focus:border-[#b88f3a] focus:outline-none focus:ring-1 focus:ring-[#b88f3a]"
           >
-            Recargar
-          </button>
-        </div>
-
-        {error && (
-          <p className="mt-3 text-sm text-red-600">
-            {error}
-          </p>
-        )}
-      </div>
-
-      {/* Filtros */}
-      <div className="bg-white border border-gray-200 shadow-sm p-5">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-8">
-            <label className="text-xs text-gray-600">BUSCAR</label>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por código, usuario o habitación..."
-              className="mt-2 w-full h-10 border border-gray-300 px-3 outline-none focus:border-gray-600 text-gray-900"
-            />
-          </div>
-
-          <div className="md:col-span-4">
-            <label className="text-xs text-gray-600">ESTADO</label>
-            <select
-              value={estado}
-              onChange={(e) => setEstado(e.target.value)}
-              className="mt-2 w-full h-10 border border-gray-300 px-3 outline-none focus:border-gray-600 bg-white text-gray-900"
+            <option value="">Todos los estados</option>
+            {ESTADOS_RESERVA.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
+          </select>
+          {(TextoBusqueda || FiltroEstado) && (
+            <button
+              type="button"
+              onClick={() => {
+                setTextoBusqueda("");
+                setFiltroEstado("");
+              }}
+              className="rounded-lg border border-[#6a645a]/40 bg-white px-3 py-2 text-sm text-[#5b564d] hover:bg-[#f6f2ec]"
             >
-              <option value="todas">Todas</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="confirmada">Confirmada</option>
-              <option value="cancelada">Cancelada</option>
-            </select>
-          </div>
+              Limpiar filtros
+            </button>
+          )}
+          <span className="text-sm text-[#5b564d]">
+            {ReservasFiltradas.length} de {Reservas.length}
+          </span>
         </div>
-      </div>
-
-      {/* Tabla */}
-      <div className="bg-white border border-gray-200 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-10 text-center text-gray-600">Cargando reservas...</div>
-        ) : (
-          <div className="overflow-auto">
-            <table className="w-full text-left text-gray-900">
-              <thead>
-                <tr className="text-xs uppercase tracking-wider text-gray-700 border-b border-gray-200">
-                  <th className="py-4 px-6">ID</th>
-                  <th className="py-4 px-6">Código</th>
-                  <th className="py-4 px-6">Usuario</th>
-                  <th className="py-4 px-6">Habitación</th>
-                  <th className="py-4 px-6">Fechas</th>
-                  <th className="py-4 px-6">Huéspedes</th>
-                  <th className="py-4 px-6">Precio Total</th>
-                  <th className="py-4 px-6">Estado</th>
-                  <th className="py-4 px-6">Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="py-10 px-6 text-center text-gray-600">
-                      No hay reservas para mostrar.
+      )}
+      {Cargando ? (
+        <div className="mt-8 flex justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#b88f3a] border-t-transparent" />
+        </div>
+      ) : Reservas.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-[#e5e0d8] bg-white p-12 text-center text-[#5b564d]">
+          No hay reservas registradas.
+        </div>
+      ) : ReservasFiltradas.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-[#e5e0d8] bg-white p-12 text-center text-[#5b564d]">
+          No hay resultados con los filtros aplicados.
+        </div>
+      ) : (
+        <div className="mt-6 overflow-x-auto rounded-xl border border-[#e5e0d8] bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-[#e5e0d8] bg-[#f6f2ec]">
+              <tr>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">ID</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Código</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Usuario</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Habitación</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Fechas</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Huéspedes</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Precio Total</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Estado</th>
+                <th className="px-4 py-3 font-medium text-[#1c1a16]">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="text-[#5b564d]">
+              {ReservasFiltradas.map((r) => {
+                const PuedeNoShow =
+                  r.estado === "confirmada" && r.fecha_entrada < Hoy;
+                return (
+                  <tr key={r.id} className="border-b border-[#e5e0d8]">
+                    <td className="px-4 py-3">{r.id}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {r.codigo_reserva ?? "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.nombre_usuario ?? r.usuario_id}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.numero_habitacion ?? r.habitacion_id}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.fecha_entrada} — {r.fecha_salida}
+                    </td>
+                    <td className="px-4 py-3">{r.numero_huespedes}</td>
+                    <td className="px-4 py-3">
+                      {FormatearMontoConMoneda(
+                        ObtenerPrecioTotalNumerico(r.precio_total),
+                        r.moneda ?? "USD"
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {BadgeEstadoReserva(r.estado)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => VerDetalle(r.id)}
+                          className="rounded bg-[#1c1a16] px-2 py-1 text-xs text-white hover:bg-[#2d2a26]"
+                        >
+                          Ver
+                        </button>
+                        {PuedeActualizarEstado && r.estado === "confirmada" && (
+                          <button
+                            type="button"
+                            onClick={() => SolicitarCheckout(r.id)}
+                            className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700"
+                          >
+                            Check-out
+                          </button>
+                        )}
+                        {PuedeActualizarEstado && PuedeNoShow && (
+                          <button
+                            type="button"
+                            onClick={() => SolicitarNoShow(r.id)}
+                            className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700"
+                          >
+                            No-show
+                          </button>
+                        )}
+                        {PuedeCancelar && r.estado !== "cancelada" && r.estado !== "completada" && (
+                          <button
+                            type="button"
+                            onClick={() => SolicitarCancelar(r.id)}
+                            className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  filtered.map((r) => (
-                    <tr key={r.id} className="border-b border-gray-200 last:border-0">
-                      <td className="py-4 px-6">{r.id}</td>
-                      <td className="py-4 px-6 font-semibold">
-                        {r.codigo ?? `RES-${r.id}`}
-                      </td>
-                      <td className="py-4 px-6">
-                        {r.usuario_nombre ?? r.usuario_email ?? "—"}
-                      </td>
-                      <td className="py-4 px-6">
-                        {r.habitacion_numero ?? (r.habitacion_id ?? "—")}
-                      </td>
-                      <td className="py-4 px-6">
-                        {(r.fecha_inicio ?? "—")} - {(r.fecha_fin ?? "—")}
-                      </td>
-                      <td className="py-4 px-6">{r.huespedes ?? "—"}</td>
-                      <td className="py-4 px-6">{money(r.precio_total)}</td>
-                      <td className="py-4 px-6">
-                        <span className="px-3 py-1 text-xs border border-gray-300 text-gray-700 bg-gray-100 rounded">
-                          {r.estado ?? "—"}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <button
-                          onClick={() => alert(`Ver reserva: ${r.codigo ?? r.id}`)}
-                          className="px-4 py-2 bg-gray-900 text-white text-xs hover:bg-black"
-                        >
-                          VER
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {ModalReserva && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="FuenteTitulo text-lg font-semibold text-[#1c1a16]">
+              Detalle de Reserva
+            </h2>
+            <div className="mt-4 space-y-2 text-sm text-[#5b564d]">
+              <p>
+                <strong>Código:</strong> {ModalReserva.codigo_reserva ?? "—"} (ID:{" "}
+                {ModalReserva.id})
+              </p>
+              <p>
+                <strong>Usuario:</strong>{" "}
+                {ModalReserva.nombre_usuario ?? ModalReserva.usuario_id}
+              </p>
+              <p>
+                <strong>Habitación:</strong>{" "}
+                {ModalReserva.numero_habitacion ?? ModalReserva.habitacion_id}
+              </p>
+              <p>
+                <strong>Fechas:</strong> {ModalReserva.fecha_entrada} —{" "}
+                {ModalReserva.fecha_salida}
+              </p>
+              <p>
+                <strong>Huéspedes:</strong> {ModalReserva.numero_huespedes}
+              </p>
+              <p>
+                <strong>Estado:</strong>{" "}
+                {BadgeEstadoReserva(ModalReserva.estado)}
+              </p>
+              <p>
+                <strong>Precio total:</strong>{" "}
+                {FormatearMontoConMoneda(
+                  ObtenerPrecioTotalNumerico(ModalReserva.precio_total),
+                  ModalReserva.moneda ?? "USD"
                 )}
-              </tbody>
-            </table>
+              </p>
+              {ModalReserva.notas ? (
+                <p>
+                  <strong>Notas:</strong> {ModalReserva.notas}
+                </p>
+              ) : null}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setModalReserva(null)}
+                className="rounded-lg border border-[#6a645a] bg-white px-4 py-2 text-sm text-[#5b564d] hover:bg-[#f6f2ec]"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+      {ConfigConfirmacion && (
+        <ModalConfirmacion
+          Abierto={!!ConfirmacionReserva}
+          Titulo={ConfigConfirmacion.Titulo}
+          Mensaje={ConfigConfirmacion.Mensaje}
+          TextoConfirmar={ConfigConfirmacion.TextoConfirmar}
+          Variante={ConfigConfirmacion.Variante}
+          AlConfirmar={ConfirmarAccionReserva}
+          AlCancelar={() => setConfirmacionReserva(null)}
+        />
+      )}
     </div>
   );
 }
