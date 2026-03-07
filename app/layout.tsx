@@ -7,7 +7,7 @@ import "sileo/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Royal Palm",
+  title: "Royal Palms",
   description: "Tu hotel, tu momento.",
   icons: {
     icon: "/Logo.svg",

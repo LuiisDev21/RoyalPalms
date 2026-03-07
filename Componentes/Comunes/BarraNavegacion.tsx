@@ -83,7 +83,11 @@ export function BarraNavegacion() {
       const UmbralTemaClaro = Math.max(UmbralFlotante, window.innerHeight - 120);
 
       PonerEstaFlotante(PosicionVertical > UmbralFlotante);
-      PonerEsTemaClaro(PosicionVertical > UmbralTemaClaro);
+      if (typeof ForzarTemaClaro === "boolean") {
+        PonerEsTemaClaro(ForzarTemaClaro);
+      } else {
+        PonerEsTemaClaro(PosicionVertical > UmbralTemaClaro);
+      }
     }
 
     AlHacerScroll();
