@@ -56,6 +56,25 @@ export function FormularioIniciarSesion() {
   const [RegistroContraseña, PonerRegistroContraseña] = useState("");
   const [Enviando, PonerEnviando] = useState(false);
 
+  const FuerzaContraseñaRegistro = (() => {
+    const Valor = RegistroContraseña;
+    if (!Valor) return { Nivel: 0, Etiqueta: "Sin contraseña" };
+    const TieneLongitud = Valor.length >= 8;
+    const TieneMinuscula = /[a-z]/.test(Valor);
+    const TieneMayuscula = /[A-Z]/.test(Valor);
+    const TieneDigito = /\d/.test(Valor);
+    const TieneEspecial = /[^\da-zA-Z]/.test(Valor);
+    const Puntos =
+      (TieneLongitud ? 1 : 0) +
+      (TieneMinuscula ? 1 : 0) +
+      (TieneMayuscula ? 1 : 0) +
+      (TieneDigito ? 1 : 0) +
+      (TieneEspecial ? 1 : 0);
+    if (Puntos <= 2) return { Nivel: 1, Etiqueta: "Débil" };
+    if (Puntos === 3 || Puntos === 4) return { Nivel: 2, Etiqueta: "Media" };
+    return { Nivel: 3, Etiqueta: "Fuerte" };
+  })();
+
   async function EnviarLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!Email.trim() || !Contraseña) {
@@ -187,25 +206,35 @@ export function FormularioIniciarSesion() {
           <div className="mt-8 flex border-b border-[#6a645a]/20">
             <button
               type="button"
-              onClick={() => PonerPestañaActiva("login")}
+          onClick={() => {
+            if (Enviando) return;
+            PonerPestañaActiva("login");
+          }}
               className={UnirClases(
                 "flex-1 pb-4 text-xs font-medium uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]",
                 PestañaActiva === "login"
                   ? "border-b-2 border-[#b88f3a] text-[#1c1a16]"
-                  : "text-[#6a645a] hover:text-[#5b564d]"
+              : "text-[#6a645a] hover:text-[#5b564d]",
+            Enviando && "opacity-60 cursor-not-allowed"
               )}
+          disabled={Enviando}
             >
               Iniciar sesión
             </button>
             <button
               type="button"
-              onClick={() => PonerPestañaActiva("registro")}
+          onClick={() => {
+            if (Enviando) return;
+            PonerPestañaActiva("registro");
+          }}
               className={UnirClases(
                 "flex-1 pb-4 text-xs font-medium uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]",
                 PestañaActiva === "registro"
                   ? "border-b-2 border-[#b88f3a] text-[#1c1a16]"
-                  : "text-[#6a645a] hover:text-[#5b564d]"
+              : "text-[#6a645a] hover:text-[#5b564d]",
+            Enviando && "opacity-60 cursor-not-allowed"
               )}
+          disabled={Enviando}
             >
               Registrarse
             </button>
@@ -250,12 +279,6 @@ export function FormularioIniciarSesion() {
                   >
                     Contraseña
                   </label>
-                  <Link
-                    href="/recuperar-contrasena"
-                    className="text-xs text-[#b88f3a] transition-colors hover:text-[#a67c32]"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </Link>
                 </div>
                 <div className="mt-2 flex items-center gap-2 border-b border-[#6a645a]/40 pb-2 focus-within:border-[#b88f3a]">
                   <span className="text-[#6a645a]" aria-hidden="true">
@@ -278,9 +301,15 @@ export function FormularioIniciarSesion() {
               <button
                 type="submit"
                 disabled={Enviando}
-                className="mt-8 w-full rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] disabled:opacity-60"
+                className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] disabled:opacity-60"
               >
-                {Enviando ? "Entrando…" : "Entrar"}
+                {Enviando && (
+                  <span
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                    aria-hidden="true"
+                  />
+                )}
+                <span>{Enviando ? "Entrando…" : "Entrar"}</span>
               </button>
             </form>
           ) : (
@@ -397,30 +426,62 @@ export function FormularioIniciarSesion() {
                 >
                   Contraseña
                 </label>
-                <div className="mt-2 flex items-center gap-2 border-b border-[#6a645a]/40 pb-2 focus-within:border-[#b88f3a]">
-                  <span className="text-[#6a645a]" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  </span>
-                  <input
-                    id="reg-password"
-                    type="password"
-                    value={RegistroContraseña}
-                    onChange={(e) => PonerRegistroContraseña(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    className="flex-1 bg-transparent text-sm text-[#1c1a16] placeholder:text-[#6a645a]/70 outline-none"
-                  />
+                <div className="mt-2">
+                  <div className="flex items-center gap-2 border-b border-[#6a645a]/40 pb-2 focus-within:border-[#b88f3a]">
+                    <span className="text-[#6a645a]" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </span>
+                    <input
+                      id="reg-password"
+                      type="password"
+                      value={RegistroContraseña}
+                      onChange={(e) => PonerRegistroContraseña(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                      className="flex-1 bg-transparent text-sm text-[#1c1a16] placeholder:text-[#6a645a]/70 outline-none"
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-[#5b564d]">Fuerza de la contraseña:</span>
+                    <span
+                      className={UnirClases(
+                        "font-medium",
+                        FuerzaContraseñaRegistro.Nivel === 1 && "text-[#b91c1c]",
+                        FuerzaContraseñaRegistro.Nivel === 2 && "text-[#b88f3a]",
+                        FuerzaContraseñaRegistro.Nivel === 3 && "text-[#15803d]"
+                      )}
+                    >
+                      {FuerzaContraseñaRegistro.Etiqueta}
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full rounded-full bg-[#e5e0d8]">
+                    <div
+                      className={UnirClases(
+                        "h-full rounded-full transition-all",
+                        FuerzaContraseñaRegistro.Nivel === 0 && "w-0",
+                        FuerzaContraseñaRegistro.Nivel === 1 && "w-1/3 bg-[#b91c1c]",
+                        FuerzaContraseñaRegistro.Nivel === 2 && "w-2/3 bg-[#b88f3a]",
+                        FuerzaContraseñaRegistro.Nivel === 3 && "w-full bg-[#15803d]"
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
               <button
                 type="submit"
                 disabled={Enviando}
-                className="mt-8 w-full rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] disabled:opacity-60"
+                className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1c1a16] px-6 py-3.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#2d2a26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] disabled:opacity-60"
               >
-                {Enviando ? "Registrando…" : "Registrarse"}
+                {Enviando && (
+                  <span
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                    aria-hidden="true"
+                  />
+                )}
+                <span>{Enviando ? "Registrando…" : "Registrarse"}</span>
               </button>
             </form>
           )}
