@@ -11,34 +11,17 @@ export function EnlaceSidebar({
   Hijo,
   Href,
   Activo,
-  Deshabilitado,
   Icono,
   onNavigate,
 }: {
   Hijo: React.ReactNode;
   Href: string;
   Activo?: boolean;
-  Deshabilitado?: boolean;
   Icono: React.ReactNode;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const EstaActivo = Activo ?? (pathname === Href || pathname.startsWith(Href + "/"));
-
-  if (Deshabilitado) {
-    return (
-      <span
-        className={UnirClases(
-          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-          "cursor-not-allowed text-[#9ca3af] opacity-70"
-        )}
-        title="No tienes permiso para acceder"
-      >
-        {Icono}
-        <span>{Hijo}</span>
-      </span>
-    );
-  }
 
   return (
     <Link
