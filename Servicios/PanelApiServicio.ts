@@ -401,11 +401,15 @@ export interface AuditoriaLogItem {
   usuario_nombre: string | null;
   fecha_accion: string;
   observaciones: string | null;
+  resumen_cambio?: string | null;
+  campos_modificados?: string[] | null;
 }
 
 export async function ObtenerAuditoriaReportePanel(Params: {
   fechaDesde?: string | null;
   fechaHasta?: string | null;
+  accion?: string | null;
+  tabla_afectada?: string | null;
   Saltar?: number;
   Limite?: number;
 }): Promise<AuditoriaLogItem[]> {
@@ -414,6 +418,8 @@ export async function ObtenerAuditoriaReportePanel(Params: {
       ConstruirQueryReporte({
         fecha_desde: Params.fechaDesde,
         fecha_hasta: Params.fechaHasta,
+        accion: Params.accion,
+        tabla_afectada: Params.tabla_afectada,
         Saltar: Params.Saltar ?? 0,
         Limite: Params.Limite ?? 100,
       })
