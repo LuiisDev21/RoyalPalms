@@ -13,6 +13,36 @@ function UnirClases(...Clases: Array<string | undefined | false | null>) {
   return Clases.filter(Boolean).join(" ");
 }
 
+function EsNombreValido(Valor: string): boolean {
+  const Patron = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]{2,50}$/;
+  return Patron.test(Valor.trim());
+}
+
+function EsApellidoValido(Valor: string): boolean {
+  const Patron = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]{2,50}$/;
+  return Patron.test(Valor.trim());
+}
+
+function EsTelefonoValido(Valor: string): boolean {
+  const ValorRecortado = Valor.trim();
+  if (!ValorRecortado) return true;
+  const Patron = /^[0-9+\s\-()]{7,20}$/;
+  if (!Patron.test(ValorRecortado)) return false;
+  const SoloDigitos = ValorRecortado.replace(/\D/g, "");
+  return SoloDigitos.length >= 8 && SoloDigitos.length <= 15;
+}
+
+function EsEmailValido(Valor: string): boolean {
+  const ValorRecortado = Valor.trim();
+  const Patron = /^[A-Za-z0-9]+@[A-Za-z0-9]+(\.[A-Za-z0-9]+)+$/;
+  return Patron.test(ValorRecortado);
+}
+
+function EsContraseñaSegura(Valor: string): boolean {
+  const Patron = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
+  return Patron.test(Valor);
+}
+
 export function FormularioIniciarSesion() {
   const router = useRouter();
   const { IniciarSesion, RegistrarUsuario } = UseAuth();
@@ -53,24 +83,63 @@ export function FormularioIniciarSesion() {
 
   async function EnviarRegistro(e: React.FormEvent) {
     e.preventDefault();
-    if (!RegistroEmail.trim() || !RegistroNombre.trim() || !RegistroApellido.trim() || !RegistroContraseña) {
+    const EmailRegistro = RegistroEmail.trim();
+    const NombreRegistro = RegistroNombre.trim();
+    const ApellidoRegistro = RegistroApellido.trim();
+    const TelefonoRegistro = RegistroTelefono.trim();
+    const ContraseñaRegistro = RegistroContraseña;
+
+    if (!EmailRegistro || !NombreRegistro || !ApellidoRegistro || !ContraseñaRegistro) {
       Notificaciones.Error("Completa los campos obligatorios.");
       return;
     }
+
+    if (!EsEmailValido(EmailRegistro)) {
+      Notificaciones.Error("Email no válido", "Revisa que el formato del correo sea correcto.");
+      return;
+    }
+
+    if (!EsNombreValido(NombreRegistro)) {
+      Notificaciones.Error("Nombre no válido", "Usa solo letras, espacios y un máximo de 50 caracteres.");
+      return;
+    }
+
+    if (!EsApellidoValido(ApellidoRegistro)) {
+      Notificaciones.Error("Apellido no válido", "Usa solo letras, espacios y un máximo de 50 caracteres.");
+      return;
+    }
+
+    if (!EsTelefonoValido(TelefonoRegistro)) {
+      Notificaciones.Error(
+        "Teléfono no válido",
+        "Usa solo números, +, espacios, guiones o paréntesis y un largo de teléfono válido."
+      );
+      return;
+    }
+
+    if (!EsContraseñaSegura(ContraseñaRegistro)) {
+      Notificaciones.Error(
+        "Contraseña poco segura",
+        "Debe tener al menos 8 caracteres, mayúsculas, minúsculas, un número y un carácter especial."
+      );
+      return;
+    }
+
     PonerEnviando(true);
     try {
       await RegistrarUsuario({
-        email: RegistroEmail.trim(),
-        nombre: RegistroNombre.trim(),
-        apellido: RegistroApellido.trim(),
-        password: RegistroContraseña,
-        telefono: RegistroTelefono.trim() || null,
+        email: EmailRegistro,
+        nombre: NombreRegistro,
+        apellido: ApellidoRegistro,
+        password: ContraseñaRegistro,
+        telefono: TelefonoRegistro || null,
       });
       await IniciarSesion({
-        email: RegistroEmail.trim(),
-        password: RegistroContraseña,
+        email: EmailRegistro,
+        password: ContraseñaRegistro,
       });
-      const NombreMostrar = [RegistroNombre.trim(), RegistroApellido.trim()].filter(Boolean).join(" ").trim() || RegistroEmail.trim();
+      const NombreMostrar =
+        [NombreRegistro, ApellidoRegistro].filter(Boolean).join(" ").trim() || EmailRegistro;
       Notificaciones.Exito("Cuenta creada", `Bienvenido, ${NombreMostrar}`);
       const { ObtenerUsuarioAlmacenado } = await import("@/Servicios/ApiCliente");
       const u = ObtenerUsuarioAlmacenado();
