@@ -1,13 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
-  BuscarHabitacionesDisponibles,
-  ListarHabitaciones,
-} from "@/Servicios/HabitacionesServicio";
+  BuscarHabitacionesDisponiblesCliente,
+  ListarHabitacionesCliente,
+} from "@/Servicios/ClienteApiServicio";
 import { TarjetaHabitacion } from "./TarjetaHabitacion";
+import type { HabitacionResponse } from "../Tipos/Habitacion";
 
 const TamanoPagina = 6;
 
-export async function ListadoHabitaciones({
+export function ListadoHabitaciones({
   Entrada,
   Salida,
   Huespedes,
@@ -23,16 +27,45 @@ export async function ListadoHabitaciones({
   const Capacidad = Huespedes ? parseInt(Huespedes, 10) : null;
   const TipoNum = TipoId ? parseInt(TipoId, 10) : null;
   const PaginaActual = Math.max(1, Pagina);
+  const [ListaCompleta, SetListaCompleta] = useState<HabitacionResponse[]>([]);
+  const [Cargando, SetCargando] = useState(true);
+  const [ErrorCarga, SetErrorCarga] = useState<string | null>(null);
 
-  const ListaCompleta =
-    Entrada && Salida
-      ? await BuscarHabitacionesDisponibles(
-          Entrada,
-          Salida,
-          Number.isNaN(Capacidad) ? null : Capacidad,
-          Number.isNaN(TipoNum) ? null : TipoNum
-        )
-      : await ListarHabitaciones(0, 100);
+  useEffect(() => {
+    let Activo = true;
+    async function CargarHabitaciones() {
+      SetCargando(true);
+      SetErrorCarga(null);
+      try {
+        const Datos =
+          Entrada && Salida
+            ? await BuscarHabitacionesDisponiblesCliente(
+                Entrada,
+                Salida,
+                Number.isNaN(Capacidad) ? null : Capacidad,
+                Number.isNaN(TipoNum) ? null : TipoNum
+              )
+            : await ListarHabitacionesCliente(0, 100);
+        if (!Activo) return;
+        SetListaCompleta(Array.isArray(Datos) ? Datos : []);
+      } catch (ErrorDesconocido) {
+        if (!Activo) return;
+        SetListaCompleta([]);
+        const Mensaje =
+          ErrorDesconocido instanceof Error
+            ? ErrorDesconocido.message
+            : "No se pudieron cargar las habitaciones.";
+        SetErrorCarga(Mensaje);
+      } finally {
+        if (!Activo) return;
+        SetCargando(false);
+      }
+    }
+    CargarHabitaciones();
+    return () => {
+      Activo = false;
+    };
+  }, [Entrada, Salida, Capacidad, TipoNum]);
 
   const Total = ListaCompleta.length;
   const PaginaInicio = (PaginaActual - 1) * TamanoPagina;
@@ -58,7 +91,16 @@ export async function ListadoHabitaciones({
         </div>
       </div>
 
-      {HabitacionesPagina.length === 0 ? (
+      {Cargando ? (
+        <div className="mt-12 rounded-2xl border border-[#6a645a]/15 bg-[#f6f2ec] p-12 text-center">
+          <p className="FuenteTitulo text-lg text-[#1c1a16]">Cargando habitaciones...</p>
+        </div>
+      ) : ErrorCarga ? (
+        <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 p-12 text-center">
+          <p className="FuenteTitulo text-lg text-red-700">Error al cargar habitaciones</p>
+          <p className="mt-2 text-sm text-red-600">{ErrorCarga}</p>
+        </div>
+      ) : HabitacionesPagina.length === 0 ? (
         <div className="mt-12 rounded-2xl border border-[#6a645a]/15 bg-[#f6f2ec] p-12 text-center">
           <p className="FuenteTitulo text-lg text-[#1c1a16]">
             No hay habitaciones disponibles

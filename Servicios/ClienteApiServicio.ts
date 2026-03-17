@@ -11,6 +11,22 @@ export async function ListarTiposHabitacionCliente(): Promise<TipoHabitacionResp
   return Array.isArray(r) ? r : [];
 }
 
+export async function ListarHabitacionesCliente(
+  Saltar = 0,
+  Limite = 100
+): Promise<HabitacionResponse[]> {
+  const r = await HacerRequest<HabitacionResponse[]>(
+    `/habitaciones?Saltar=${Saltar}&Limite=${Limite}`
+  );
+  return Array.isArray(r) ? r : [];
+}
+
+export async function ObtenerHabitacionCliente(
+  Id: number
+): Promise<HabitacionResponse> {
+  return HacerRequest<HabitacionResponse>(`/habitaciones/${Id}`);
+}
+
 export interface ReservaClienteResponse {
   id: number;
   habitacion_id: number;
