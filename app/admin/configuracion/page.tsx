@@ -24,6 +24,7 @@ export default function PaginaConfiguracionAdmin() {
       ActualizarConfiguracionPanel(Clave, Valor),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Configuracion });
+      setEditarItem(null);
       Notificaciones.Exito("Configuración actualizada correctamente");
     },
     onError: (e: unknown) => {
@@ -45,7 +46,6 @@ export default function PaginaConfiguracionAdmin() {
   function ConfirmarEditar(NuevoValor?: string) {
     if (!EditarItem) return;
     MutacionActualizar.mutate({ Clave: EditarItem.clave, Valor: NuevoValor ?? EditarItem.valorActual });
-    setEditarItem(null);
   }
 
   return (
@@ -105,6 +105,7 @@ export default function PaginaConfiguracionAdmin() {
         MostrarEntrada
         ValorEntradaInicial={EditarItem?.valorActual ?? ""}
         EtiquetaEntrada="Nuevo valor"
+        Confirmando={MutacionActualizar.isPending}
         AlConfirmar={ConfirmarEditar}
         AlCancelar={() => setEditarItem(null)}
       />

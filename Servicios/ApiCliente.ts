@@ -73,6 +73,23 @@ async function RefrescarToken(): Promise<TokenResponse> {
   return data;
 }
 
+function ObtenerNombreArchivoDesdeContentDisposition(
+  ContentDisposition: string | null
+): string | null {
+  if (!ContentDisposition) return null;
+  const CoincidenciaUtf8 = ContentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (CoincidenciaUtf8?.[1]) {
+    try {
+      return decodeURIComponent(CoincidenciaUtf8[1].replace(/["']/g, ""));
+    } catch {
+      return CoincidenciaUtf8[1].replace(/["']/g, "");
+    }
+  }
+  const CoincidenciaSimple = ContentDisposition.match(/filename="?([^"]+)"?/i);
+  if (CoincidenciaSimple?.[1]) return CoincidenciaSimple[1];
+  return null;
+}
+
 export async function HacerRequest<T>(
   endpoint: string,
   opciones: RequestInit = {},
@@ -134,4 +151,47 @@ export async function HacerRequestFormData<T>(
 
   if (!res.ok) throw new Error(ExtraerMensajeDeDetalle(data.detail));
   return data as T;
+}
+
+export async function DescargarArchivoAutenticado(
+  endpoint: string,
+  NombrePorDefecto: string,
+  reintentar401 = true
+): Promise<void> {
+  const base = ObtenerBaseUrl();
+  if (!base) throw new Error("NEXT_PUBLIC_API_URL no está configurada.");
+  const url = `${base}${endpoint}`;
+  const token = ObtenerToken();
+  const headers: HeadersInit = {};
+  if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(url, { method: "GET", headers });
+
+  if (res.status === 401 && reintentar401 && ObtenerRefreshToken()) {
+    try {
+      await RefrescarToken();
+      return DescargarArchivoAutenticado(endpoint, NombrePorDefecto, false);
+    } catch {
+      EliminarSesion();
+      if (typeof window !== "undefined" && window.location) window.location.href = "/login";
+      throw new Error("Sesión expirada. Inicia sesión de nuevo.");
+    }
+  }
+
+  if (!res.ok) {
+    const data: { detail?: unknown } = await res.json().catch(() => ({}));
+    throw new Error(ExtraerMensajeDeDetalle(data.detail));
+  }
+
+  const BlobArchivo = await res.blob();
+  const ContentDisposition = res.headers.get("Content-Disposition");
+  const NombreArchivo = ObtenerNombreArchivoDesdeContentDisposition(ContentDisposition) || NombrePorDefecto;
+  const UrlTemporal = URL.createObjectURL(BlobArchivo);
+  const Enlace = document.createElement("a");
+  Enlace.href = UrlTemporal;
+  Enlace.download = NombreArchivo;
+  document.body.appendChild(Enlace);
+  Enlace.click();
+  document.body.removeChild(Enlace);
+  URL.revokeObjectURL(UrlTemporal);
 }

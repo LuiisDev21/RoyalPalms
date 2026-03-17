@@ -48,6 +48,7 @@ export default function PaginaReservasAdmin() {
   const PuedeCancelar = PuedeCancelarReserva(Roles);
   const PuedeActualizarEstado = PuedeActualizarEstadoReserva(Roles);
   const [ModalReserva, setModalReserva] = useState<ReservaResponse | null>(null);
+  const [CargandoDetalleId, setCargandoDetalleId] = useState<number | null>(null);
   const [TextoBusqueda, setTextoBusqueda] = useState("");
   const [FiltroEstado, setFiltroEstado] = useState<string>("");
   const [ConfirmacionReserva, setConfirmacionReserva] = useState<
@@ -64,6 +65,7 @@ export default function PaginaReservasAdmin() {
       ActualizarReservaPanel(Id, { estado }),
     onSuccess: (_, { estado }) => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+      setConfirmacionReserva(null);
       setModalReserva(null);
       Notificaciones.Exito(estado === "completada" ? "Reserva marcada como completada" : "Reserva marcada como no-show");
     },
@@ -78,6 +80,7 @@ export default function PaginaReservasAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
        queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Pagos });
+      setConfirmacionReserva(null);
       setModalReserva(null);
       Notificaciones.Exito("Reserva cancelada correctamente");
     },
@@ -108,12 +111,15 @@ export default function PaginaReservasAdmin() {
   });
 
   async function VerDetalle(Id: number) {
+    setCargandoDetalleId(Id);
     try {
       const r = await ObtenerReservaPanel(Id);
       setModalReserva(r);
     } catch (e) {
       const { Titulo, Descripcion } = ObtenerTituloYDescripcionError(e, "Error al cargar reserva");
       Notificaciones.Error(Titulo, Descripcion);
+    } finally {
+      setCargandoDetalleId(null);
     }
   }
 
@@ -139,7 +145,6 @@ export default function PaginaReservasAdmin() {
         estado: ConfirmacionReserva.accion === "checkout" ? "completada" : "no_show",
       });
     }
-    setConfirmacionReserva(null);
   }
 
   const ConfigConfirmacion =
@@ -263,14 +268,20 @@ export default function PaginaReservasAdmin() {
                         <button
                           type="button"
                           onClick={() => VerDetalle(r.id)}
-                          className="rounded bg-[#1c1a16] px-2 py-1 text-xs text-white hover:bg-[#2d2a26]"
+                          disabled={
+                            CargandoDetalleId === r.id ||
+                            MutacionActualizar.isPending ||
+                            MutacionCancelar.isPending
+                          }
+                          className="rounded bg-[#1c1a16] px-2 py-1 text-xs text-white hover:bg-[#2d2a26] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Ver
+                          {CargandoDetalleId === r.id ? "Cargando..." : "Ver"}
                         </button>
                         {PuedeActualizarEstado && r.estado === "confirmada" && (
                           <button
                             type="button"
                             onClick={() => SolicitarCheckout(r.id)}
+                            disabled={MutacionActualizar.isPending || MutacionCancelar.isPending}
                             className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700"
                           >
                             Check-out
@@ -280,6 +291,7 @@ export default function PaginaReservasAdmin() {
                           <button
                             type="button"
                             onClick={() => SolicitarNoShow(r.id)}
+                            disabled={MutacionActualizar.isPending || MutacionCancelar.isPending}
                             className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700"
                           >
                             No-show
@@ -289,6 +301,7 @@ export default function PaginaReservasAdmin() {
                           <button
                             type="button"
                             onClick={() => SolicitarCancelar(r.id)}
+                            disabled={MutacionActualizar.isPending || MutacionCancelar.isPending}
                             className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
                           >
                             Cancelar
@@ -370,6 +383,7 @@ export default function PaginaReservasAdmin() {
           Mensaje={ConfigConfirmacion.Mensaje}
           TextoConfirmar={ConfigConfirmacion.TextoConfirmar}
           Variante={ConfigConfirmacion.Variante}
+          Confirmando={MutacionActualizar.isPending || MutacionCancelar.isPending}
           AlConfirmar={ConfirmarAccionReserva}
           AlCancelar={() => setConfirmacionReserva(null)}
         />

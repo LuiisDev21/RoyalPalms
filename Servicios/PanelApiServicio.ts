@@ -2,7 +2,7 @@ import type {
   HabitacionResponse,
   TipoHabitacionResponse,
 } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
-import { HacerRequest, HacerRequestFormData } from "./ApiCliente";
+import { DescargarArchivoAutenticado, HacerRequest, HacerRequestFormData } from "./ApiCliente";
 
 export interface PoliticaCancelacionResponse {
   id: number;
@@ -311,6 +311,8 @@ export interface DashboardReporteResponse {
     reservas_confirmadas: number;
     reservas_canceladas: number;
     reservas_completadas: number;
+    tasa_cancelacion?: number;
+    reservas_no_show?: number;
   };
   total_ingresos: number;
   cantidad_pagos: number;
@@ -335,6 +337,8 @@ export interface EstadisticasReservasResponse {
   reservas_confirmadas: number;
   reservas_canceladas: number;
   reservas_completadas: number;
+  tasa_cancelacion?: number;
+  reservas_no_show?: number;
   ingresos_totales: number;
   promedio_reserva: number;
 }
@@ -376,10 +380,15 @@ export interface OcupacionItemResponse {
   nombre: string;
   noches_ocupadas: number;
   ingresos: number;
+  noches_disponibles?: number;
+  porcentaje_ocupacion?: number;
 }
 
 export interface OcupacionReporteResponse {
   items: OcupacionItemResponse[];
+  total_noches_ocupadas?: number;
+  total_noches_disponibles?: number;
+  porcentaje_ocupacion_global?: number;
 }
 
 export async function ObtenerOcupacionReportePanel(
@@ -405,26 +414,39 @@ export interface AuditoriaLogItem {
   campos_modificados?: string[] | null;
 }
 
+export interface AuditoriaLogPaginadaResponse {
+  items: AuditoriaLogItem[];
+  total: number;
+}
+
 export async function ObtenerAuditoriaReportePanel(Params: {
   fechaDesde?: string | null;
   fechaHasta?: string | null;
   accion?: string | null;
   tabla_afectada?: string | null;
+  usuario_id?: number | null;
   Saltar?: number;
   Limite?: number;
-}): Promise<AuditoriaLogItem[]> {
-  const r = await HacerRequest<AuditoriaLogItem[]>(
+}): Promise<AuditoriaLogPaginadaResponse> {
+  const r = await HacerRequest<AuditoriaLogPaginadaResponse | AuditoriaLogItem[]>(
     "/reportes/auditoria" +
       ConstruirQueryReporte({
         fecha_desde: Params.fechaDesde,
         fecha_hasta: Params.fechaHasta,
         accion: Params.accion,
         tabla_afectada: Params.tabla_afectada,
+        usuario_id: Params.usuario_id,
         Saltar: Params.Saltar ?? 0,
         Limite: Params.Limite ?? 100,
       })
   );
-  return Array.isArray(r) ? r : [];
+  if (Array.isArray(r)) {
+    return { items: r, total: r.length };
+  }
+  return {
+    items: Array.isArray(r.items) ? r.items : [],
+    total: typeof r.total === "number" ? r.total : 0,
+  };
 }
 
 export interface ClienteRankingItem {
@@ -433,6 +455,8 @@ export interface ClienteRankingItem {
   email: string;
   total_reservas: number;
   total_gastado: number;
+  ultima_reserva?: string;
+  promedio_por_reserva?: number;
 }
 
 export async function ObtenerClientesRankingPanel(
@@ -451,4 +475,245 @@ export async function ObtenerClientesRankingPanel(
       })
   );
   return Array.isArray(r) ? r : [];
+}
+
+export interface IngresosPorTipoItem {
+  tipo_habitacion?: string;
+  tipo?: string;
+  nombre?: string;
+  total_ingresos?: number;
+  ingresos?: number;
+  total_reservas?: number;
+  reservas?: number;
+  cantidad_reservas?: number;
+}
+
+export interface ComparativaReporteResponse {
+  [Clave: string]: string | number | null | undefined;
+}
+
+export interface TendenciaItemResponse {
+  fecha?: string;
+  periodo?: string;
+  valor?: number;
+  ingresos?: number;
+  reservas?: number;
+}
+
+export interface TendenciasReporteResponse {
+  items: TendenciaItemResponse[];
+}
+
+export interface ReembolsosDisputasItemResponse {
+  fecha?: string;
+  tipo?: string;
+  estado?: string;
+  monto?: number;
+  referencia?: string;
+}
+
+export interface ReembolsosDisputasReporteResponse {
+  total_reembolsos?: number;
+  total_disputas?: number;
+  monto_reembolsado?: number;
+  monto_disputado?: number;
+  items?: ReembolsosDisputasItemResponse[];
+}
+
+export interface KpisHoyReporteResponse {
+  [Clave: string]: string | number | null | undefined;
+}
+
+export interface DashboardCompletoReporteResponse {
+  [Clave: string]: unknown;
+}
+
+function NormalizarColeccion<T>(Dato: unknown): T[] {
+  if (Array.isArray(Dato)) return Dato as T[];
+  if (Dato && typeof Dato === "object" && Array.isArray((Dato as { items?: unknown[] }).items)) {
+    return (Dato as { items: T[] }).items;
+  }
+  return [];
+}
+
+export async function ObtenerIngresosPorTipoPanel(
+  FechaInicio?: string | null,
+  FechaFin?: string | null
+): Promise<IngresosPorTipoItem[]> {
+  const r = await HacerRequest<IngresosPorTipoItem[] | { items?: IngresosPorTipoItem[] }>(
+    "/reportes/ingresos-por-tipo" +
+      ConstruirQueryReporte({
+        fecha_inicio: FechaInicio,
+        fecha_fin: FechaFin,
+      })
+  );
+  return NormalizarColeccion<IngresosPorTipoItem>(r);
+}
+
+export async function ObtenerComparativaReportePanel(
+  FechaInicio?: string | null,
+  FechaFin?: string | null
+): Promise<ComparativaReporteResponse> {
+  const r = await HacerRequest<ComparativaReporteResponse>(
+    "/reportes/comparativa" +
+      ConstruirQueryReporte({
+        fecha_inicio: FechaInicio,
+        fecha_fin: FechaFin,
+      })
+  );
+  return r && typeof r === "object" ? r : {};
+}
+
+export async function ObtenerTendenciasReportePanel(Params: {
+  tipo: "ingresos" | "reservas";
+  agrupar_por: "dia" | "semana";
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+}): Promise<TendenciasReporteResponse> {
+  const r = await HacerRequest<TendenciasReporteResponse | TendenciaItemResponse[]>(
+    "/reportes/tendencias" +
+      ConstruirQueryReporte({
+        tipo: Params.tipo,
+        agrupar_por: Params.agrupar_por,
+        fecha_inicio: Params.fecha_inicio,
+        fecha_fin: Params.fecha_fin,
+      })
+  );
+  if (Array.isArray(r)) return { items: r };
+  return { items: NormalizarColeccion<TendenciaItemResponse>(r) };
+}
+
+export async function ObtenerReembolsosDisputasReportePanel(
+  FechaInicio?: string | null,
+  FechaFin?: string | null
+): Promise<ReembolsosDisputasReporteResponse> {
+  const r = await HacerRequest<ReembolsosDisputasReporteResponse>(
+    "/reportes/reembolsos-disputas" +
+      ConstruirQueryReporte({
+        fecha_inicio: FechaInicio,
+        fecha_fin: FechaFin,
+      })
+  );
+  return r && typeof r === "object" ? r : {};
+}
+
+export async function ObtenerKpisHoyReportePanel(): Promise<KpisHoyReporteResponse> {
+  const r = await HacerRequest<KpisHoyReporteResponse>("/reportes/kpis-hoy");
+  return r && typeof r === "object" ? r : {};
+}
+
+export async function ObtenerDashboardCompletoReportePanel(
+  FechaInicio?: string | null,
+  FechaFin?: string | null
+): Promise<DashboardCompletoReporteResponse> {
+  const r = await HacerRequest<DashboardCompletoReporteResponse>(
+    "/reportes/dashboard-completo" +
+      ConstruirQueryReporte({
+        fecha_inicio: FechaInicio,
+        fecha_fin: FechaFin,
+      })
+  );
+  return r && typeof r === "object" ? r : {};
+}
+
+export type FormatoExportacion = "csv" | "xlsx" | "pdf";
+
+export async function ExportarIngresosReportePanel(
+  Formato: FormatoExportacion,
+  FechaInicio?: string | null,
+  FechaFin?: string | null
+): Promise<void> {
+  await DescargarArchivoAutenticado(
+    "/reportes/exportar/ingresos" +
+      ConstruirQueryReporte({
+        formato: Formato,
+        fecha_inicio: FechaInicio,
+        fecha_fin: FechaFin,
+      }),
+    `reporte-ingresos.${Formato}`
+  );
+}
+
+export async function ExportarOcupacionReportePanel(
+  Formato: FormatoExportacion,
+  Params: {
+    fecha_inicio?: string | null;
+    fecha_fin?: string | null;
+    agrupar_por?: "habitacion" | "tipo";
+  }
+): Promise<void> {
+  await DescargarArchivoAutenticado(
+    "/reportes/exportar/ocupacion" +
+      ConstruirQueryReporte({
+        formato: Formato,
+        fecha_inicio: Params.fecha_inicio,
+        fecha_fin: Params.fecha_fin,
+        agrupar_por: Params.agrupar_por ?? "habitacion",
+      }),
+    `reporte-ocupacion.${Formato}`
+  );
+}
+
+export async function ExportarClientesReportePanel(
+  Formato: FormatoExportacion,
+  Params: {
+    fecha_inicio?: string | null;
+    fecha_fin?: string | null;
+    orden?: "reservas" | "gastado";
+    limite?: number;
+  }
+): Promise<void> {
+  await DescargarArchivoAutenticado(
+    "/reportes/exportar/clientes" +
+      ConstruirQueryReporte({
+        formato: Formato,
+        fecha_inicio: Params.fecha_inicio,
+        fecha_fin: Params.fecha_fin,
+        orden: Params.orden ?? "gastado",
+        limite: Params.limite ?? 50,
+      }),
+    `reporte-clientes.${Formato}`
+  );
+}
+
+export async function ExportarAuditoriaReportePanel(
+  Formato: FormatoExportacion,
+  Params: {
+    fecha_desde?: string | null;
+    fecha_hasta?: string | null;
+    usuario_id?: number | null;
+    accion?: string | null;
+    tabla_afectada?: string | null;
+    limite?: number;
+  }
+): Promise<void> {
+  await DescargarArchivoAutenticado(
+    "/reportes/exportar/auditoria" +
+      ConstruirQueryReporte({
+        formato: Formato,
+        fecha_desde: Params.fecha_desde,
+        fecha_hasta: Params.fecha_hasta,
+        usuario_id: Params.usuario_id,
+        accion: Params.accion,
+        tabla_afectada: Params.tabla_afectada,
+        limite: Params.limite ?? 100,
+      }),
+    `reporte-auditoria.${Formato}`
+  );
+}
+
+export async function ExportarIngresosPorTipoReportePanel(
+  Formato: FormatoExportacion,
+  FechaInicio?: string | null,
+  FechaFin?: string | null
+): Promise<void> {
+  await DescargarArchivoAutenticado(
+    "/reportes/exportar/ingresos-por-tipo" +
+      ConstruirQueryReporte({
+        formato: Formato,
+        fecha_inicio: FechaInicio,
+        fecha_fin: FechaFin,
+      }),
+    `reporte-ingresos-por-tipo.${Formato}`
+  );
 }
