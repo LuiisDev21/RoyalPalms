@@ -2,18 +2,26 @@
 
 import { UseAuth } from "@/Caracteristicas/Autenticacion/Contexto/AuthContext";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function EncabezadoMiCuenta({ onAbrirMenu }: { onAbrirMenu?: () => void } = {}) {
   const router = useRouter();
   const { Usuario, CerrarSesion } = UseAuth();
+  const [CerrandoSesion, PonerCerrandoSesion] = useState(false);
   const NombreCompleto = Usuario
     ? `${Usuario.nombre} ${Usuario.apellido}`.trim() || "Usuario"
     : "";
   const Email = Usuario?.email ?? "";
 
   async function AlCerrarSesion() {
-    await CerrarSesion();
-    router.push("/");
+    if (CerrandoSesion) return;
+    PonerCerrandoSesion(true);
+    try {
+      await CerrarSesion();
+      router.push("/");
+    } finally {
+      PonerCerrandoSesion(false);
+    }
   }
 
   // Obtenemos iniciales para el avatar
@@ -66,24 +74,35 @@ export function EncabezadoMiCuenta({ onAbrirMenu }: { onAbrirMenu?: () => void }
         <button
           type="button"
           onClick={AlCerrarSesion}
-          className="group relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white px-3 py-2 text-xs font-medium text-[#1c1a16] shadow-sm ring-1 ring-[#e5e0d8] transition-all hover:bg-[#fcfaf7] hover:ring-[#d4b982]/60 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] sm:px-4 sm:py-2.5 sm:text-[13px]"
+          disabled={CerrandoSesion}
+          className="group relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white px-3 py-2 text-xs font-medium text-[#1c1a16] shadow-sm ring-1 ring-[#e5e0d8] transition-all hover:bg-[#fcfaf7] hover:ring-[#d4b982]/60 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] sm:px-4 sm:py-2.5 sm:text-[13px]"
         >
           <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
-            <span className="hidden sm:inline">Cerrar sesión</span>
-            <span className="sm:hidden">Salir</span>
-            <svg
-              className="h-3.5 w-3.5 text-[#8a8479] transition-transform group-hover:translate-x-0.5 group-hover:text-[#b88f3a]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
+            {CerrandoSesion ? (
+              <>
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#8a8479]/70 border-t-transparent" aria-hidden="true" />
+                <span className="hidden sm:inline">Cerrando...</span>
+                <span className="sm:hidden">...</span>
+              </>
+            ) : (
+              <>
+                <span className="hidden sm:inline">Cerrar sesión</span>
+                <span className="sm:hidden">Salir</span>
+                <svg
+                  className="h-3.5 w-3.5 text-[#8a8479] transition-transform group-hover:translate-x-0.5 group-hover:text-[#b88f3a]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </>
+            )}
           </span>
         </button>
       </div>

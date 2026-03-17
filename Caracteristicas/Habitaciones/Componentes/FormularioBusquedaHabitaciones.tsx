@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { CampoFecha } from "@/Componentes/Base/CampoFecha";
 import type { TipoHabitacionResponse } from "@/Caracteristicas/Habitaciones/Tipos/Habitacion";
 
@@ -39,19 +39,28 @@ export function FormularioBusquedaHabitaciones({
   const [TipoId, PonerTipoId] = useState(
     () => Parametros.get("tipo") ?? ""
   );
+  const [BuscandoInterno, PonerBuscandoInterno] = useState(false);
+  const [Navegando, IniciarNavegacion] = useTransition();
+  const EstaBuscando = Deshabilitado || BuscandoInterno || Navegando;
 
   const Hoy = new Date().toISOString().slice(0, 10);
 
   const AlBuscar = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
+      if (EstaBuscando) return;
       if (AlBuscarConDatos) {
-        void AlBuscarConDatos({
-          FechaEntrada,
-          FechaSalida,
-          Huespedes,
-          TipoId,
-        });
+        PonerBuscandoInterno(true);
+        try {
+          await AlBuscarConDatos({
+            FechaEntrada,
+            FechaSalida,
+            Huespedes,
+            TipoId,
+          });
+        } finally {
+          PonerBuscandoInterno(false);
+        }
         return;
       }
       const Buscador = new URLSearchParams();
@@ -59,9 +68,11 @@ export function FormularioBusquedaHabitaciones({
       if (FechaSalida) Buscador.set("salida", FechaSalida);
       if (Huespedes) Buscador.set("huespedes", Huespedes);
       if (TipoId) Buscador.set("tipo", TipoId);
-      Router.push(`/habitaciones?${Buscador.toString()}`);
+      IniciarNavegacion(() => {
+        Router.push(`/habitaciones?${Buscador.toString()}`);
+      });
     },
-    [FechaEntrada, FechaSalida, Huespedes, TipoId, Router, AlBuscarConDatos]
+    [FechaEntrada, FechaSalida, Huespedes, TipoId, Router, AlBuscarConDatos, IniciarNavegacion, EstaBuscando]
   );
 
   return (
@@ -80,6 +91,7 @@ export function FormularioBusquedaHabitaciones({
           Min={Hoy}
           Valor={FechaEntrada}
           AlCambiar={PonerFechaEntrada}
+          Deshabilitado={EstaBuscando}
         />
       </div>
       <div className="flex min-w-[140px] flex-1">
@@ -89,6 +101,7 @@ export function FormularioBusquedaHabitaciones({
           Min={FechaEntrada || Hoy}
           Valor={FechaSalida}
           AlCambiar={PonerFechaSalida}
+          Deshabilitado={EstaBuscando}
         />
       </div>
       <div className="flex min-w-[120px] flex-col gap-1">
@@ -99,6 +112,7 @@ export function FormularioBusquedaHabitaciones({
           id="busqueda-huespedes"
           value={Huespedes}
           onChange={(e) => PonerHuespedes(e.target.value)}
+          disabled={EstaBuscando}
           className="rounded-lg border border-[#6a645a]/30 bg-white px-3 py-2.5 text-sm text-[#1c1a16] outline-none transition-colors focus:border-[#b88f3a] focus:ring-1 focus:ring-[#b88f3a]"
         >
           {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -116,6 +130,7 @@ export function FormularioBusquedaHabitaciones({
           id="busqueda-tipo"
           value={TipoId}
           onChange={(e) => PonerTipoId(e.target.value)}
+          disabled={EstaBuscando}
           className="rounded-lg border border-[#6a645a]/30 bg-white px-3 py-2.5 text-sm text-[#1c1a16] outline-none transition-colors focus:border-[#b88f3a] focus:ring-1 focus:ring-[#b88f3a]"
         >
           <option value="">Todas las habitaciones</option>
@@ -128,19 +143,28 @@ export function FormularioBusquedaHabitaciones({
       </div>
       <button
         type="submit"
-        disabled={Deshabilitado}
+        disabled={EstaBuscando}
         className={UnirClases(
           "flex shrink-0 items-center gap-2 rounded-lg bg-[#b88f3a] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#a67c32] disabled:opacity-60",
           "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
         )}
       >
-        <span aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-        </span>
-        {Deshabilitado ? "Buscando…" : "Buscar"}
+        {EstaBuscando ? (
+          <>
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/80 border-t-transparent" aria-hidden="true" />
+            Buscando...
+          </>
+        ) : (
+          <>
+            <span aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </span>
+            Buscar
+          </>
+        )}
       </button>
     </form>
   );

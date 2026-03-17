@@ -23,19 +23,6 @@ function ConstruirUrl(
   return `${BaseUrl}${Ruta}${Query ? `?${Query}` : ""}`;
 }
 
-async function ObtenerJsonSeguro<T>(Url: string, Revalidar: number): Promise<T | null> {
-  const Respuesta = await fetch(Url, { next: { revalidate: Revalidar } });
-  if (!Respuesta.ok) {
-    console.error("[HabitacionesServicio] Error en fetch", {
-      url: Url,
-      status: Respuesta.status,
-      statusText: Respuesta.statusText,
-    });
-    return null;
-  }
-  return Respuesta.json() as Promise<T>;
-}
-
 export async function ListarTiposHabitacion(): Promise<TipoHabitacionResponse[]> {
   if (!BaseUrl) return [];
   const Url = ConstruirUrl("/tipos-habitacion", {
@@ -43,8 +30,9 @@ export async function ListarTiposHabitacion(): Promise<TipoHabitacionResponse[]>
     Saltar: 0,
     Limite: 100,
   });
-  const Datos = await ObtenerJsonSeguro<TipoHabitacionResponse[]>(Url, 300);
-  return Array.isArray(Datos) ? Datos : [];
+  const Respuesta = await fetch(Url, { next: { revalidate: 300 } });
+  if (!Respuesta.ok) return [];
+  return Respuesta.json();
 }
 
 export async function ListarHabitaciones(
@@ -53,8 +41,9 @@ export async function ListarHabitaciones(
 ): Promise<HabitacionResponse[]> {
   if (!BaseUrl) return [];
   const Url = ConstruirUrl("/habitaciones", { Saltar, Limite });
-  const Datos = await ObtenerJsonSeguro<HabitacionResponse[]>(Url, 60);
-  return Array.isArray(Datos) ? Datos : [];
+  const Respuesta = await fetch(Url, { next: { revalidate: 60 } });
+  if (!Respuesta.ok) return [];
+  return Respuesta.json();
 }
 
 export async function BuscarHabitacionesDisponibles(
@@ -72,12 +61,15 @@ export async function BuscarHabitacionesDisponibles(
   if (TipoHabitacionId != null && TipoHabitacionId > 0)
     Params.TipoHabitacionId = TipoHabitacionId;
   const Url = ConstruirUrl("/habitaciones/buscar", Params);
-  const Datos = await ObtenerJsonSeguro<HabitacionResponse[]>(Url, 0);
-  return Array.isArray(Datos) ? Datos : [];
+  const Respuesta = await fetch(Url, { next: { revalidate: 0 } });
+  if (!Respuesta.ok) return [];
+  return Respuesta.json();
 }
 
 export async function ObtenerHabitacion(Id: number): Promise<HabitacionResponse | null> {
   if (!BaseUrl) return null;
   const Url = `${BaseUrl}/habitaciones/${Id}`;
-  return ObtenerJsonSeguro<HabitacionResponse>(Url, 60);
+  const Respuesta = await fetch(Url, { next: { revalidate: 60 } });
+  if (!Respuesta.ok) return null;
+  return Respuesta.json();
 }
