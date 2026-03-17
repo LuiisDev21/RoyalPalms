@@ -18,6 +18,7 @@ export default function LayoutAdmin({
   const { Usuario, Cargando } = UseAuth();
   const [Comprobado, setComprobado] = useState(false);
   const [SidebarAbierto, setSidebarAbierto] = useState(false);
+  const [SidebarColapsado, setSidebarColapsado] = useState(false);
 
   useEffect(() => {
     if (Cargando) return;
@@ -58,7 +59,12 @@ export default function LayoutAdmin({
         onClick={() => setSidebarAbierto(false)}
         tabIndex={SidebarAbierto ? 0 : -1}
       />
-      <SidebarPanel Abierto={SidebarAbierto} onCerrar={() => setSidebarAbierto(false)} />
+      <SidebarPanel
+        Abierto={SidebarAbierto}
+        onCerrar={() => setSidebarAbierto(false)}
+        Colapsado={SidebarColapsado}
+        AlAlternarColapso={() => setSidebarColapsado((Anterior) => !Anterior)}
+      />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <EncabezadoPanel onAbrirMenu={() => setSidebarAbierto(true)} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>

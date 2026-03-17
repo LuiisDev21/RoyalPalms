@@ -12,6 +12,7 @@ export interface ModalConfirmacionProps {
   MostrarEntrada?: boolean;
   ValorEntradaInicial?: string;
   EtiquetaEntrada?: string;
+  Confirmando?: boolean;
   AlConfirmar: (valor?: string) => void;
   AlCancelar: () => void;
 }
@@ -26,6 +27,7 @@ function ModalConfirmacionConEntrada({
   Variante,
   AlConfirmar,
   AlCancelar,
+  Confirmando = false,
 }: ModalConfirmacionProps & { ValorEntradaInicial: string }) {
   const [ValorEntrada, setValorEntrada] = useState(ValorEntradaInicial);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +69,7 @@ function ModalConfirmacionConEntrada({
               type="text"
               value={ValorEntrada}
               onChange={(e) => setValorEntrada(e.target.value)}
+              disabled={Confirmando}
               className="mt-1 w-full rounded-lg border border-[#6a645a]/40 bg-white px-3 py-2 text-[#1c1a16] focus:border-[#b88f3a] focus:outline-none focus:ring-1 focus:ring-[#b88f3a]"
             />
           </div>
@@ -74,19 +77,27 @@ function ModalConfirmacionConEntrada({
             <button
               type="button"
               onClick={AlCancelar}
+              disabled={Confirmando}
               className="rounded-lg border border-[#6a645a] bg-white px-4 py-2 text-sm font-medium text-[#5b564d] hover:bg-[#f6f2ec] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
             >
               {TextoCancelar}
             </button>
             <button
               type="submit"
-              className={`rounded-lg px-4 py-2 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] ${
+              disabled={Confirmando}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] ${
                 EsPeligro
                   ? "bg-red-600 hover:bg-red-700 focus-visible:outline-red-600"
                   : "bg-[#1c1a16] hover:bg-[#2d2a26] focus-visible:outline-[#b88f3a]"
               }`}
             >
-              {TextoConfirmar}
+              {Confirmando && (
+                <span
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                  aria-hidden="true"
+                />
+              )}
+              {Confirmando ? "Procesando..." : TextoConfirmar}
             </button>
           </div>
         </form>
@@ -105,6 +116,7 @@ export function ModalConfirmacion({
   MostrarEntrada = false,
   ValorEntradaInicial = "",
   EtiquetaEntrada = "Valor",
+  Confirmando = false,
   AlConfirmar,
   AlCancelar,
 }: ModalConfirmacionProps) {
@@ -123,6 +135,7 @@ export function ModalConfirmacion({
         MostrarEntrada
         ValorEntradaInicial={ValorEntradaInicial}
         EtiquetaEntrada={EtiquetaEntrada}
+        Confirmando={Confirmando}
         AlConfirmar={AlConfirmar}
         AlCancelar={AlCancelar}
       />
@@ -156,19 +169,27 @@ export function ModalConfirmacion({
             <button
               type="button"
               onClick={AlCancelar}
+              disabled={Confirmando}
               className="rounded-lg border border-[#6a645a] bg-white px-4 py-2 text-sm font-medium text-[#5b564d] hover:bg-[#f6f2ec] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a]"
             >
               {TextoCancelar}
             </button>
             <button
               type="submit"
-              className={`rounded-lg px-4 py-2 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] ${
+              disabled={Confirmando}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] ${
                 EsPeligro
                   ? "bg-red-600 hover:bg-red-700 focus-visible:outline-red-600"
                   : "bg-[#1c1a16] hover:bg-[#2d2a26] focus-visible:outline-[#b88f3a]"
               }`}
             >
-              {TextoConfirmar}
+              {Confirmando && (
+                <span
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                  aria-hidden="true"
+                />
+              )}
+              {Confirmando ? "Procesando..." : TextoConfirmar}
             </button>
           </div>
         </form>

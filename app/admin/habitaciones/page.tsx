@@ -111,6 +111,7 @@ export default function PaginaHabitacionesAdmin() {
     mutationFn: EliminarHabitacionPanel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Habitaciones });
+      setConfirmacionEliminar(null);
       Notificaciones.Exito("Habitación eliminada correctamente");
     },
     onError: (e) => {
@@ -168,7 +169,6 @@ export default function PaginaHabitacionesAdmin() {
   function ConfirmarEliminar() {
     if (ConfirmacionEliminar != null) {
       MutacionEliminar.mutate(ConfirmacionEliminar);
-      setConfirmacionEliminar(null);
     }
   }
 
@@ -222,6 +222,7 @@ export default function PaginaHabitacionesAdmin() {
         Mensaje="¿Estás seguro de eliminar esta habitación? Esta acción no se puede deshacer."
         TextoConfirmar="Eliminar"
         Variante="peligro"
+        Confirmando={MutacionEliminar.isPending}
         AlConfirmar={ConfirmarEliminar}
         AlCancelar={() => setConfirmacionEliminar(null)}
       />

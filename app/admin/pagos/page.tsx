@@ -69,6 +69,7 @@ export default function PaginaPagosAdmin() {
     mutationFn: ProcesarPagoPanel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Pagos });
+      setConfirmacionPago(null);
       Notificaciones.Exito("Pago procesado correctamente");
     },
     onError: (e) => {
@@ -82,6 +83,7 @@ export default function PaginaPagosAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Pagos });
       queryClient.invalidateQueries({ queryKey: ClavesQueryPanel.Reservas });
+      setConfirmacionPago(null);
       Notificaciones.Exito("Reembolso realizado", "La reserva ha sido cancelada.");
     },
     onError: (e) => {
@@ -124,7 +126,6 @@ export default function PaginaPagosAdmin() {
     if (!ConfirmacionPago) return;
     if (ConfirmacionPago.tipo === "procesar") MutacionProcesar.mutate(ConfirmacionPago.id);
     else MutacionReembolsar.mutate(ConfirmacionPago.id);
-    setConfirmacionPago(null);
   }
 
   const MostrarModalProcesar = ConfirmacionPago?.tipo === "procesar";
@@ -267,6 +268,7 @@ export default function PaginaPagosAdmin() {
         Titulo="Procesar pago"
         Mensaje="¿Procesar este pago?"
         TextoConfirmar="Procesar"
+        Confirmando={MutacionProcesar.isPending || MutacionReembolsar.isPending}
         AlConfirmar={ConfirmarAccionPago}
         AlCancelar={() => setConfirmacionPago(null)}
       />
@@ -276,6 +278,7 @@ export default function PaginaPagosAdmin() {
         Mensaje="¿Estás seguro de reembolsar este pago? La reserva asociada será cancelada."
         TextoConfirmar="Reembolsar"
         Variante="peligro"
+        Confirmando={MutacionProcesar.isPending || MutacionReembolsar.isPending}
         AlConfirmar={ConfirmarAccionPago}
         AlCancelar={() => setConfirmacionPago(null)}
       />

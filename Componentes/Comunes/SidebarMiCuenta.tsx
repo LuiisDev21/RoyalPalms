@@ -38,27 +38,59 @@ const Enlaces = [
 export function SidebarMiCuenta({
   Abierto = true,
   onCerrar,
+  Colapsado = false,
+  AlAlternarColapso,
 }: {
   Abierto?: boolean;
   onCerrar?: () => void;
+  Colapsado?: boolean;
+  AlAlternarColapso?: () => void;
 } = {}) {
   const pathname = usePathname();
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#1c1a16] text-white shadow-xl transition-transform duration-200 ease-out md:relative md:z-auto md:translate-x-0 md:shadow-none ${Abierto ? "translate-x-0" : "-translate-x-full"}`}
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#1c1a16] text-white shadow-xl transition-all duration-200 ease-out md:relative md:z-auto md:translate-x-0 md:shadow-none ${Colapsado ? "md:w-20" : "md:w-64"} ${Abierto ? "translate-x-0" : "-translate-x-full"}`}
     >
-      <Link
-        href="/mi-cuenta"
-        className="flex items-center gap-2 border-b border-[#3d3a35] px-6 py-5"
-        aria-label="Royal Palm - Mi cuenta"
-        onClick={onCerrar}
-      >
-        <span className="text-[#b88f3a]">
-          <LogoMarca ClaseAdicional="h-8 w-8" />
-        </span>
-        <span className="FuenteTitulo text-lg font-semibold text-white">Mi cuenta</span>
-      </Link>
+      <div className="group relative border-b border-[#3d3a35] px-3 py-4">
+        <div className={`flex items-center ${Colapsado ? "justify-center" : "justify-between gap-2"}`}>
+          <Link
+            href="/mi-cuenta"
+            className={`flex items-center ${Colapsado ? "justify-center transition-opacity duration-150 md:group-hover:opacity-0" : "gap-2"}`}
+            aria-label="Royal Palm - Mi cuenta"
+            onClick={onCerrar}
+          >
+            <span className="text-[#b88f3a]">
+              <LogoMarca ClaseAdicional="h-8 w-8" />
+            </span>
+            {!Colapsado && <span className="FuenteTitulo text-lg font-semibold text-white">Mi cuenta</span>}
+          </Link>
+          {!Colapsado && (
+            <button
+              type="button"
+              onClick={AlAlternarColapso}
+              className="hidden rounded-md p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white md:inline-flex"
+              aria-label="Colapsar sidebar"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {Colapsado && (
+          <button
+            type="button"
+            onClick={AlAlternarColapso}
+            className="pointer-events-none absolute inset-0 hidden items-center justify-center bg-[#1c1a16]/95 text-white opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 md:flex"
+            aria-label="Expandir sidebar"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        )}
+      </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label="Área de cliente">
         {Enlaces.map(({ Href, Hijo, Icono }) => {
           const Activo = pathname === Href || (Href !== "/mi-cuenta/reservas" && pathname?.startsWith(Href));
@@ -67,14 +99,15 @@ export function SidebarMiCuenta({
               key={Href}
               href={Href}
               onClick={onCerrar}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] ${
+              className={`flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b88f3a] ${Colapsado ? "justify-center px-2" : "px-3"} ${
                 Activo
                   ? "bg-[#b88f3a]/20 text-[#b88f3a]"
                   : "text-white/80 hover:bg-white/10 hover:text-white"
               }`}
+              title={Hijo}
             >
               {Icono}
-              {Hijo}
+              {!Colapsado && Hijo}
             </Link>
           );
         })}
@@ -82,13 +115,14 @@ export function SidebarMiCuenta({
       <div className="border-t border-[#3d3a35] p-4">
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          className={`flex items-center gap-3 rounded-lg py-2.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white ${Colapsado ? "justify-center px-2" : "px-3"}`}
           onClick={onCerrar}
+          title="Volver al inicio"
         >
           <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          Volver al inicio
+          {!Colapsado && "Volver al inicio"}
         </Link>
       </div>
     </aside>
